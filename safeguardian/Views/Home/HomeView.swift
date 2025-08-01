@@ -1,10 +1,18 @@
 import SwiftUI
 
 struct HomeView: View {
+    @StateObject private var meshManager = SafeGuardianMeshManager()
+    
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Safety Status Header with Mesh Integration
+                    SafetyStatusHeaderWithMesh(meshManager: meshManager)
+                    
+                    // Community Actions Section
+                    CommunityActionsSection()
+                    
                     // Local Community Feed Section
                     LocalCommunityFeedSection()
                 }
