@@ -1265,9 +1265,8 @@ class BluetoothMeshService: NSObject {
         // Setup battery optimizer
         setupBatteryOptimizer()
         
-        // Start cover traffic for privacy (disabled by default for now)
-        // TODO: Make this configurable in settings
-        let coverTrafficEnabled = true
+        // Start cover traffic for privacy - configurable in settings
+        let coverTrafficEnabled = UserDefaults.standard.bool(forKey: "SafeGuardian.CoverTrafficEnabled")
         if coverTrafficEnabled {
             SecureLogger.log("Cover traffic enabled", category: SecureLogger.security, level: .info)
             startCoverTraffic()
@@ -2777,7 +2776,8 @@ class BluetoothMeshService: NSObject {
                             }
                         } else if unmappedPeripherals.count > 1 {
                             SecureLogger.log("handleReceivedPacket: Multiple unmapped peripherals (\(unmappedPeripherals.count)), cannot determine which is \(senderID)", category: SecureLogger.session, level: .debug)
-                            // TODO: Could use timing heuristics or other methods to match
+                            // Use timing heuristics to match the most recently discovered peripheral
+                            peripheralToUpdate = unmappedPeripherals.max(by: { $0.lastDiscovered < $1.lastDiscovered })
                         }
                     }
                 }

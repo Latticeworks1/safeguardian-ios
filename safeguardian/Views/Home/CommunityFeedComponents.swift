@@ -1,4 +1,5 @@
 import SwiftUI
+import Network
 
 // MARK: - Safety Status Enum
 enum SafetyStatus: CaseIterable {
@@ -1523,19 +1524,29 @@ class LocalSocialFeedManager: ObservableObject {
     }
     
     private func checkNetworkStatus() {
-        // Simulate offline state for realistic first-time user experience
-        isOnline = false
+        // Real network connectivity monitoring using NWPathMonitor
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                let wasOnline = self?.isOnline ?? false
+                self?.isOnline = path.status == .satisfied
+                
+                // If we just came back online, publish queued posts
+                if !wasOnline && path.status == .satisfied {
+                    self?.publishQueuedPosts()
+                }
+            }
+        }
         
-        // TODO: Real network connectivity monitoring would go here
-        // NetworkMonitor.shared.statusUpdateHandler = { [weak self] status in
-        //     DispatchQueue.main.async {
-        //         self?.isOnline = status == .connected
-        //         if status == .connected {
-        //             self?.publishQueuedPosts()
-        //         }
-        //     }
-        // }
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        monitor.start(queue: queue)
+        
+        // Store monitor to prevent deallocation
+        self.networkMonitor = monitor
     }
+    
+    // Store network monitor to prevent deallocation
+    private var networkMonitor: NWPathMonitor?
     
     func queuePost(_ post: SocialPost) {
         var queuedPost = post

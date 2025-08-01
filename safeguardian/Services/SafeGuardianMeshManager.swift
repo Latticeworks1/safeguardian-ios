@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 import Combine
 
+// BitChat protocols and types are included directly in project
+// No separate import needed - using local BitChat implementation
+
 /// SafeGuardian's mesh networking manager that wraps BitChat's proven P2P implementation
 class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
     
