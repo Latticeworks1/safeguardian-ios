@@ -593,3 +593,401 @@ struct DeliveryStatusIndicator: View {
     }
     .padding()
 }
+
+// MARK: - Mesh Chat Specific Components
+
+// MARK: - Mesh Connection Status Section
+struct MeshConnectionStatusSection: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Connection status indicator
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(connectionStatusColor)
+                    .frame(width: 10, height: 10)
+                
+                Text(connectionStatusText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.primary)
+            }
+            
+            // Network quality indicator
+            HStack(spacing: 4) {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.caption)
+                    .foregroundStyle(networkQualityColor)
+                
+                Text(meshManager.getNetworkQuality().description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            // Peer count
+            if meshManager.isConnected {
+                HStack(spacing: 4) {
+                    Image(systemName: "person.2.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Text("\(meshManager.connectedPeers.count)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.primary)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.regularMaterial)
+    }
+    
+    private var connectionStatusColor: Color {
+        meshManager.isConnected ? .green : .red
+    }
+    
+    private var connectionStatusText: String {
+        meshManager.isConnected ? "Connected" : "Offline"
+    }
+    
+    private var networkQualityColor: Color {
+        switch meshManager.getNetworkQuality().color {
+        case "green": return .green
+        case "yellow": return .yellow  
+        case "orange": return .orange
+        default: return .red
+        }
+    }
+}
+
+// MARK: - Empty Mesh Chat View
+struct EmptyMeshChatView: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            // Status icon
+            Image(systemName: meshManager.isConnected ? "message.circle.fill" : "network.slash")
+                .font(.system(size: 60))
+                .foregroundStyle(meshManager.isConnected ? .blue : .secondary)
+                .symbolEffect(.pulse, options: .repeating, value: !meshManager.isConnected)
+            
+            VStack(spacing: 12) {
+                Text(meshManager.isConnected ? "Ready to Chat" : "No Connection")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
+                
+                Text(emptyStateMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+            }
+            
+            // Connection tip for offline state
+            if !meshManager.isConnected {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Text("Connection Tip")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
+                    
+                    Text("Make sure Bluetooth is enabled and you're near other SafeGuardian users.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.orange.opacity(0.1))
+                        .stroke(.orange.opacity(0.3), lineWidth: 1)
+                )
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 32)
+    }
+    
+    private var emptyStateMessage: String {
+        if meshManager.isConnected {
+            return "You're connected to \(meshManager.connectedPeers.count) peer\(meshManager.connectedPeers.count == 1 ? "" : "s"). Start a conversation!"
+        } else {
+            return "Connect to the mesh network to chat with nearby SafeGuardian users even without internet."
+        }
+    }
+}
+
+// MARK: - Mesh Messages List
+struct MeshMessagesList: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(meshManager.messages, id: \.id) { message in
+                        EnhancedMessageBubble(
+                            message: message,
+                            isCurrentUser: message.sender == meshManager.nickname
+                        )
+                        .id(message.id)
+                    }
+                }
+                .padding()
+            }
+            .onChange(of: meshManager.messages.count) { _, _ in
+                scrollToBottom(proxy: proxy)
+            }
+        }
+    }
+    
+    private func scrollToBottom(proxy: ScrollViewProxy) {
+        if let lastMessage = meshManager.messages.last {
+            withAnimation(.easeOut(duration: 0.3)) {
+                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+            }
+        }
+    }
+}
+
+// MARK: - Enhanced Message Bubble with Delivery Status
+struct EnhancedMessageBubble: View {
+    let message: SafeGuardianMessage
+    let isCurrentUser: Bool
+    
+    var body: some View {
+        HStack {
+            if isCurrentUser {
+                Spacer()
+            }
+            
+            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
+                // Sender name for received messages
+                if !isCurrentUser && !message.sender.isEmpty {
+                    Text(message.sender)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                
+                // Message content
+                VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 2) {
+                    Text(message.content)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(messageBackgroundColor)
+                        .foregroundStyle(messageTextColor)
+                        .cornerRadius(18)
+                    
+                    // Message metadata
+                    HStack(spacing: 4) {
+                        Text(message.timestamp, style: .time)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        
+                        // Delivery status for sent messages
+                        if isCurrentUser, let deliveryStatus = message.deliveryStatus {
+                            SafeGuardianDeliveryStatusIcon(status: deliveryStatus)
+                        }
+                        
+                        // Emergency indicator
+                        if message.content.lowercased().contains("emergency") || 
+                           message.content.lowercased().contains("help") {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+            }
+            
+            if !isCurrentUser {
+                Spacer()
+            }
+        }
+    }
+    
+    private var messageBackgroundColor: Color {
+        if message.content.lowercased().contains("emergency") || 
+           message.content.lowercased().contains("help") {
+            return .red
+        }
+        return isCurrentUser ? .blue : Color(.systemGray5)
+    }
+    
+    private var messageTextColor: Color {
+        if message.content.lowercased().contains("emergency") || 
+           message.content.lowercased().contains("help") {
+            return .white
+        }
+        return isCurrentUser ? .white : .primary
+    }
+}
+
+// MARK: - SafeGuardian Delivery Status Icon
+struct SafeGuardianDeliveryStatusIcon: View {
+    let status: SafeGuardianDeliveryStatus
+    
+    var body: some View {
+        Image(systemName: iconName)
+            .font(.caption2)
+            .foregroundStyle(iconColor)
+    }
+    
+    private var iconName: String {
+        switch status {
+        case .sending:
+            return "clock"
+        case .sent:
+            return "checkmark"
+        case .delivered:
+            return "checkmark.circle"
+        case .read:
+            return "checkmark.circle.fill"
+        case .failed:
+            return "xmark.circle"
+        case .partiallyDelivered:
+            return "checkmark.circle.badge.questionmark"
+        }
+    }
+    
+    private var iconColor: Color {
+        switch status {
+        case .sending:
+            return .orange
+        case .sent:
+            return .blue
+        case .delivered:
+            return .green
+        case .read:
+            return .green
+        case .failed:
+            return .red
+        case .partiallyDelivered:
+            return .yellow
+        }
+    }
+}
+
+// MARK: - Message Input Section
+struct MessageInputSection: View {
+    @Binding var newMessage: String
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    @Binding var showingEmergencyAlert: Bool
+    let onSend: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Emergency warning banner
+            if isEmergencyMessage && !newMessage.isEmpty {
+                EmergencyMessageWarning()
+            }
+            
+            // Input area
+            HStack(spacing: 12) {
+                TextField("Type a message...", text: $newMessage, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(1...4)
+                    .disabled(!meshManager.isConnected)
+                
+                Button(action: onSend) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(sendButtonColor, in: Circle())
+                }
+                .disabled(newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !meshManager.isConnected)
+            }
+            .padding()
+            .background(.regularMaterial)
+        }
+    }
+    
+    private var isEmergencyMessage: Bool {
+        let lowercased = newMessage.lowercased()
+        return lowercased.contains("emergency") || lowercased.contains("help") || 
+               lowercased.contains("urgent") || lowercased.contains("danger")
+    }
+    
+    private var sendButtonColor: Color {
+        if newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !meshManager.isConnected {
+            return .gray
+        }
+        return isEmergencyMessage ? .red : .blue
+    }
+}
+
+// MARK: - Emergency Message Warning
+struct EmergencyMessageWarning: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+            
+            Text("Emergency message detected - will be sent as priority broadcast")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.red.opacity(0.1))
+    }
+}
+
+// MARK: - Connection Quality Indicator
+struct ConnectionQualityIndicator: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: qualityIcon)
+                .font(.caption)
+                .foregroundStyle(qualityColor)
+            
+            Text("\(meshManager.connectedPeers.count)")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(qualityColor.opacity(0.1), in: Capsule())
+    }
+    
+    private var qualityIcon: String {
+        let quality = meshManager.getNetworkQuality()
+        switch quality {
+        case .offline:
+            return "antenna.radiowaves.left.and.right.slash"
+        case .poor:
+            return "antenna.radiowaves.left.and.right"
+        case .good:
+            return "antenna.radiowaves.left.and.right"
+        case .excellent:
+            return "antenna.radiowaves.left.and.right"
+        }
+    }
+    
+    private var qualityColor: Color {
+        let quality = meshManager.getNetworkQuality()
+        switch quality.color {
+        case "green": return .green
+        case "yellow": return .yellow  
+        case "orange": return .orange
+        default: return .red
+        }
+    }
+}

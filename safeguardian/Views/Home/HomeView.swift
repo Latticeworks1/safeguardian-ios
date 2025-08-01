@@ -10,9 +10,6 @@ struct HomeView: View {
                     // Safety Status Header with Mesh Integration
                     SafetyStatusHeaderWithMesh(meshManager: meshManager)
                     
-                    // Community Actions Section
-                    CommunityActionsSection()
-                    
                     // Local Community Feed Section
                     LocalCommunityFeedSection()
                 }

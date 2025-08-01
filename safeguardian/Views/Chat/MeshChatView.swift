@@ -3,100 +3,49 @@ import SwiftUI
 struct MeshChatView: View {
     @StateObject private var meshManager = SafeGuardianMeshManager()
     @State private var newMessage = ""
+    @State private var showingEmergencyAlert = false
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Connection Status Bar
-                HStack {
-                    Circle()
-                        .fill(meshManager.isConnected ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                    
-                    Text(meshManager.isConnected ? "Connected" : "Offline")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                    
-                    if meshManager.isConnected {
-                        Text("• \(meshManager.connectedPeers.count) peers")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Text(meshManager.getNetworkQuality().description)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(meshManager.getNetworkQuality().color).opacity(0.2))
-                        .cornerRadius(8)
-                }
-                .padding()
-                .background(Color(.systemGray6))
+                // Enhanced Connection Status Bar
+                MeshConnectionStatusSection(meshManager: meshManager)
                 
                 // Messages Area
                 if meshManager.messages.isEmpty {
-                    Spacer()
-                    VStack(spacing: 16) {
-                        Image(systemName: "message.circle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.secondary)
-                        
-                        Text("No messages yet")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("Start chatting with nearby SafeGuardian users through the mesh network")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    Spacer()
+                    EmptyMeshChatView(meshManager: meshManager)
                 } else {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            LazyVStack(spacing: 12) {
-                                ForEach(meshManager.messages, id: \.id) { message in
-                                    MessageBubbleView(
-                                        message: message,
-                                        isCurrentUser: message.sender == meshManager.nickname
-                                    )
-                                    .id(message.id)
-                                }
-                            }
-                            .padding()
-                        }
-                        .onChange(of: meshManager.messages.count) { _, _ in
-                            if let lastMessage = meshManager.messages.last {
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                                }
-                            }
-                        }
-                    }
+                    MeshMessagesList(meshManager: meshManager)
                 }
                 
-                // Message Input
-                HStack {
-                    TextField("Type a message...", text: $newMessage)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .disabled(!meshManager.isConnected)
-                    
-                    Button(action: sendMessage) {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(.white)
-                            .padding(8)
-                            .background(newMessage.isEmpty ? Color.gray : Color.blue)
-                            .clipShape(Circle())
-                    }
-                    .disabled(newMessage.isEmpty || !meshManager.isConnected)
-                }
-                .padding()
+                // Enhanced Message Input
+                MessageInputSection(
+                    newMessage: $newMessage,
+                    meshManager: meshManager,
+                    showingEmergencyAlert: $showingEmergencyAlert,
+                    onSend: sendMessage
+                )
             }
             .navigationTitle("Mesh Chat")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ConnectionQualityIndicator(meshManager: meshManager)
+                }
+            }
+            .alert("Emergency Message Detected", isPresented: $showingEmergencyAlert) {
+                Button("Send Emergency Broadcast", role: .destructive) {
+                    meshManager.sendEmergencyBroadcast(newMessage.trimmingCharacters(in: .whitespacesAndNewlines))
+                    newMessage = ""
+                }
+                Button("Send Normal Message") {
+                    meshManager.sendMessage(newMessage.trimmingCharacters(in: .whitespacesAndNewlines))
+                    newMessage = ""
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This message contains emergency keywords. Would you like to send it as an emergency broadcast to all connected peers?")
+            }
             .onAppear {
                 // BitChat automatically starts scanning for peers
                 print("SafeGuardian mesh chat initialized")
@@ -109,14 +58,13 @@ struct MeshChatView: View {
         
         let trimmedMessage = newMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Check for emergency messages
+        // Check for emergency messages and show alert
         if meshManager.isEmergencyMessage(trimmedMessage) {
-            meshManager.sendEmergencyBroadcast(trimmedMessage)
+            showingEmergencyAlert = true
         } else {
             meshManager.sendMessage(trimmedMessage)
+            newMessage = ""
         }
-        
-        newMessage = ""
     }
 }
 
