@@ -1,0 +1,3 @@
+[submodule "NexaSDK"]
+	path = NexaSDK
+	url = https://github.com/NexaAI/nexa-sdk.git
