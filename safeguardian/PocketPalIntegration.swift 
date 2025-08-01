@@ -1,0 +1,204 @@
+import Foundation
+import React
+import Combine
+import SwiftUI
+
+// MARK: - Models
+struct PocketPalModel: Identifiable {
+    let id: String
+    let name: String
+    let size: String
+    let isDownloaded: Bool
+    let isLoaded: Bool
+}
+
+struct AIMessage: Identifiable {
+    let id = UUID()
+    var text: String
+    let isUser: Bool
+}
+
+struct ChatMessage: Identifiable {
+    let id = UUID()
+    let text: String
+    let sender: String
+    let isCurrentUser: Bool
+}
+
+enum PocketPalError: Error {
+    case noModelLoaded
+}
+
+// MARK: - Bridge
+@objc class PocketPalBridge: NSObject {
+    static let shared = PocketPalBridge()
+    private var bridge: RCTBridge?
+    
+    override init() {
+        super.init()
+        bridge = RCTBridge(delegate: self, launchOptions: nil)
+    }
+    
+    func getDeviceInfo() -> [String: Any] {
+        guard let module = bridge?.module(forName: "DeviceInfoModule") else { return [:] }
+        return [:]
+    }
+    
+    func activateKeepAwake() {
+        bridge?.enqueueJSCall("KeepAwakeModule", method: "activate", args: [], completion: nil)
+    }
+    
+    func deactivateKeepAwake() {
+        bridge?.enqueueJSCall("KeepAwakeModule", method: "deactivate", args: [], completion: nil)
+    }
+    
+    func loadModel(modelPath: String, completion: @escaping (Bool) -> Void) {
+        bridge?.enqueueJSCall("RNLlama", method: "loadModel", args: [modelPath]) { result in
+            completion(result != nil)
+        }
+    }
+    
+    func generateText(prompt: String, onToken: @escaping (String) -> Void, completion: @escaping (Error?) -> Void) {
+        bridge?.enqueueJSCall("RNLlama", method: "generateText", args: [prompt]) { result in
+            // Handle streaming response
+        }
+    }
+}
+
+extension PocketPalBridge: RCTBridgeDelegate {
+    func sourceURL(for bridge: RCTBridge!) -> URL! {
+        #if DEBUG
+        return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index", fallbackResource: nil)
+        #else
+        return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+        #endif
+    }
+}
+
+// MARK: - AI Manager
+class PocketPalAIManager: ObservableObject {
+    @Published var isModelLoaded = false
+    @Published var isGenerating = false
+    @Published var availableModels: [PocketPalModel] = []
+    @Published var currentModel: PocketPalModel?
+    
+    private let bridge = PocketPalBridge.shared
+    
+    init() {
+        loadAvailableModels()
+    }
+    
+    private func loadAvailableModels() {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let modelsPath = documentsPath.appendingPathComponent("models")
+        
+        do {
+            let modelFiles = try FileManager.default.contentsOfDirectory(at: modelsPath, includingPropertiesForKeys: [.fileSizeKey])
+            let models = modelFiles.compactMap { url -> PocketPalModel? in
+                guard url.pathExtension == "gguf" else { return nil }
+                let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                return PocketPalModel(
+                    id: url.lastPathComponent,
+                    name: url.deletingPathExtension().lastPathComponent,
+                    size: ByteCountFormatter().string(fromByteCount: Int64(fileSize)),
+                    isDownloaded: true,
+                    isLoaded: false
+                )
+            }
+            DispatchQueue.main.async { self.availableModels = models }
+        } catch {
+            print("Error loading models: \(error)")
+        }
+    }
+    
+    func loadModel(_ model: PocketPalModel) {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let modelPath = documentsPath.appendingPathComponent("models/\(model.id)")
+        
+        bridge.loadModel(modelPath: modelPath.path) { [weak self] success in
+            DispatchQueue.main.async {
+                self?.isModelLoaded = success
+                if success { self?.currentModel = model }
+            }
+        }
+    }
+    
+    func generateResponse(
+        prompt: String,
+        systemMessage: String,
+        onToken: @escaping (String) -> Void,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        guard isModelLoaded else {
+            completion(.failure(PocketPalError.noModelLoaded))
+            return
+        }
+        
+        isGenerating = true
+        bridge.activateKeepAwake()
+        
+        let fullPrompt = """
+        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+        \(systemMessage)
+        <|eot_id|><|start_header_id|>user<|end_header_id|>
+        \(prompt)
+        <|eot_id|><|start_header_id|>assistant<|end_header_id|>
+        """
+        
+        bridge.generateText(prompt: fullPrompt, onToken: onToken) { [weak self] error in
+            DispatchQueue.main.async {
+                self?.isGenerating = false
+                self?.bridge.deactivateKeepAwake()
+                completion(error != nil ? .failure(error!) : .success(()))
+            }
+        }
+    }
+    
+    func stopGeneration() {
+        isGenerating = false
+        bridge.deactivateKeepAwake()
+        bridge.bridge?.enqueueJSCall("RNLlama", method: "stopGeneration", args: [], completion: nil)
+    }
+}
+
+// MARK: - Models View
+struct ModelsView: View {
+    @StateObject private var aiManager = PocketPalAIManager()
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(aiManager.availableModels) { model in
+                    ModelRow(model: model, aiManager: aiManager)
+                }
+            }
+            .navigationTitle("AI Models")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+struct ModelRow: View {
+    let model: PocketPalModel
+    let aiManager: PocketPalAIManager
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(model.name).font(.headline)
+                Text(model.size).font(.caption).foregroundColor(.secondary)
+            }
+            Spacer()
+            if model.isLoaded {
+                Text("Active").font(.caption).foregroundColor(.green)
+            } else {
+                Button("Load") { aiManager.loadModel(model) }.buttonStyle(.bordered)
+            }
+        }
+    }
+}
