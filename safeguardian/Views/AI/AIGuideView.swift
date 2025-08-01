@@ -1,5 +1,148 @@
 import SwiftUI
 
+// MARK: - Minimal AI View
+struct MinimalAIView: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    @StateObject private var safetyAI = SafetyAIGuide()
+    @StateObject private var nexaAI = NexaAIService()
+    @State private var userInput = ""
+    @State private var useNexaAI = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Minimal header
+            MinimalTopHeader(title: "AI", meshManager: meshManager)
+            
+            // Chat area
+            ScrollView(showsIndicators: false) {
+                LazyVStack(spacing: 12) {
+                    // NexaAI Model Download Section (always shown at top)
+                    NexaAIModelDownloadView(nexaAI: nexaAI)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    
+                    // AI Response Toggle (when model is ready)
+                    if nexaAI.modelDownloadStatus.canGenerate {
+                        AIResponseToggle(useNexaAI: $useNexaAI)
+                            .padding(.horizontal, 20)
+                    }
+                    
+                    // Messages
+                    ForEach(safetyAI.messages, id: \.id) { message in
+                        MinimalAIMessageBubble(message: message)
+                    }
+                    
+                    // Generation indicator
+                    if nexaAI.isGenerating {
+                        NexaAIGenerationIndicator()
+                            .padding(.horizontal, 20)
+                    }
+                    
+                    if safetyAI.messages.isEmpty {
+                        MinimalEmptyState(
+                            icon: "brain",
+                            title: "Safety AI Guide",
+                            subtitle: "Ask for safety advice or emergency guidance"
+                        )
+                        .padding(.vertical, 40)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+            }
+            
+            // Input area
+            MinimalAIInput(
+                text: $userInput,
+                isProcessing: safetyAI.isGenerating || nexaAI.isGenerating,
+                onSend: {
+                    Task {
+                        if useNexaAI && nexaAI.modelDownloadStatus.canGenerate {
+                            let response = await nexaAI.generateResponse(for: userInput)
+                            await safetyAI.addUserMessage(userInput)
+                            await safetyAI.addAIResponse(response)
+                        } else {
+                            await safetyAI.sendMessage(userInput)
+                        }
+                        userInput = ""
+                    }
+                }
+            )
+        }
+        .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - Minimal AI Message Bubble
+struct MinimalAIMessageBubble: View {
+    let message: AIMessage
+    
+    var body: some View {
+        HStack {
+            if message.isFromUser {
+                Spacer(minLength: 50)
+            }
+            
+            VStack(alignment: message.isFromUser ? .trailing : .leading, spacing: 4) {
+                Text(message.content)
+                    .font(.system(size: 15, weight: .regular, design: .default))
+                    .foregroundStyle(message.isFromUser ? .white : .primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(message.isFromUser ? Color.blue : Color(.systemGray5))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                
+                Text(message.timestamp, style: .time)
+                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+            
+            if !message.isFromUser {
+                Spacer(minLength: 50)
+            }
+        }
+    }
+}
+
+// MARK: - Minimal AI Input
+struct MinimalAIInput: View {
+    @Binding var text: String
+    let isProcessing: Bool
+    let onSend: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            TextField("Ask for safety advice", text: $text)
+                .font(.system(size: 15, weight: .regular, design: .default))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .disabled(isProcessing)
+                .onSubmit(onSend)
+            
+            Button(action: onSend) {
+                if isProcessing {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(canSend ? .blue : .gray)
+                }
+            }
+            .disabled(!canSend || isProcessing)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(.systemGray6))
+    }
+    
+    private var canSend: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
 struct AIGuideView: View {
     @StateObject private var safetyAI = SafetyAIGuide()
     @State private var inputText = ""
@@ -79,7 +222,7 @@ struct AIGuideView: View {
                     }
                 }
                 .padding()
-                .background(.regularMaterial)
+                .background(Color(.systemGray6))
             }
             .navigationTitle("Safety AI Guide")
             .navigationBarTitleDisplayMode(.inline)
@@ -115,7 +258,9 @@ struct AIGuideView: View {
         }
         
         // Send to AI
-        safetyAI.sendMessage(trimmedText)
+        Task {
+            await safetyAI.sendMessage(trimmedText)
+        }
         inputText = ""
     }
     

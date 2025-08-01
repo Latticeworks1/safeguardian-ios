@@ -202,7 +202,7 @@ class SafetyAIGuide: ObservableObject {
     }
     
     // MARK: - Public Interface
-    func sendMessage(_ text: String) {
+    func sendMessage(_ text: String) async {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
         
@@ -313,6 +313,21 @@ class SafetyAIGuide: ObservableObject {
             return true
         }
         return false
+    }
+    
+    // MARK: - NexaAI Integration Support
+    func addUserMessage(_ text: String) async {
+        await MainActor.run {
+            let userMessage = AIMessage(content: text, isFromUser: true)
+            messages.append(userMessage)
+        }
+    }
+    
+    func addAIResponse(_ response: String) async {
+        await MainActor.run {
+            let aiMessage = AIMessage(content: response, isFromUser: false)
+            messages.append(aiMessage)
+        }
     }
 }
 

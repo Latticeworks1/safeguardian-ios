@@ -219,3 +219,35 @@ The project includes standard iOS test targets with BitChat integration:
 - **✅ Privacy Preserving**: End-to-end encryption via BitChat's Noise Protocol
 
 The SafeGuardian app is now production-ready with full BitChat P2P mesh networking integration, presenting as a professional safety application while leveraging enterprise-grade networking infrastructure transparently.
+
+## CRITICAL AI IMPLEMENTATION NOTE
+
+**⚠️ NEVER USE KEYWORD DETECTION FOR AI RESPONSES**
+
+When implementing AI functionality (NexaAI, llama.cpp, etc.):
+- **DO**: Use actual model inference for generating responses
+- **DON'T**: Use keyword detection/matching as a substitute for AI
+- **WHY**: Downloading a 150MB GGUF model to do keyword matching is fundamentally wrong
+- **CORRECT APPROACH**: Pass user prompts to the loaded model and return the model's generated output
+
+**Example of WRONG approach:**
+```swift
+if containsEmergencyKeywords(prompt) {
+    return "hardcoded emergency response"
+}
+```
+
+**Example of CORRECT approach:**
+```swift
+let response = try await llamaCppModel.generate(prompt: prompt)
+return response
+```
+
+The entire purpose of local AI models is to provide intelligent, context-aware responses - not glorified keyword matching.
+
+## AI Model Integration Requirements
+
+- **Real Inference**: Always use actual model inference, never keyword detection
+- **Model Purpose**: GGUF models are for generating intelligent responses, not pattern matching
+- **Implementation**: Integrate with llama.cpp or similar inference engines for actual AI functionality
+- **Performance**: Model loading and inference should provide real AI capabilities
