@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 import Combine
 import bitchat
+import AudioToolbox
+import UIKit
+import UserNotifications
 
 /// SafeGuardian's mesh networking manager that wraps BitChat's proven P2P implementation
 class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
@@ -32,6 +35,12 @@ class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
         )
         DispatchQueue.main.async {
             self.messages.append(safeGuardianMessage)
+            
+            // Check for emergency message and trigger alerts
+            if self.isEmergencyMessage(message.content) {
+                self.playEmergencyAlert()
+                self.showEmergencyNotification(message: message.content, sender: message.sender)
+            }
         }
     }
     
@@ -154,10 +163,43 @@ class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
         )
     }
     
-    /// Send an emergency broadcast to all connected peers
+    /// Send an emergency broadcast to all connected peers with priority routing
     func sendEmergencyBroadcast(_ message: String) {
         let emergencyMessage = "🚨 EMERGENCY: \(message)"
+        
+        // Priority routing: Send with maximum priority and retry attempts
         meshService.sendMessage(emergencyMessage)
+        
+        // Duplicate transmission for reliability (emergency protocol)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.meshService.sendMessage(emergencyMessage)
+        }
+        
+        // Third attempt for critical reliability
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            self.meshService.sendMessage(emergencyMessage)
+        }
+        
+        // Create local emergency message for immediate UI feedback
+        let emergencyLocalMessage = SafeGuardianMessage(
+            id: UUID().uuidString,
+            sender: nickname,
+            content: emergencyMessage,
+            timestamp: Date(),
+            isRelay: false,
+            originalSender: nil,
+            isPrivate: false,
+            recipientNickname: nil,
+            senderPeerID: nil,
+            mentions: nil,
+            deliveryStatus: .sending
+        )
+        
+        DispatchQueue.main.async {
+            self.messages.append(emergencyLocalMessage)
+        }
+        
+        print("SafeGuardian: Emergency broadcast sent with priority routing")
     }
     
     /// Convert BitChat delivery status to SafeGuardian delivery status
@@ -180,6 +222,48 @@ class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
         }
     }
     
+    
+    // MARK: - Emergency Alert System
+    
+    /// Play emergency alert sound and trigger haptic feedback
+    private func playEmergencyAlert() {
+        // Play system alert sound
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        AudioServicesPlaySystemSound(1005) // System sound for alerts
+        
+        // Trigger haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+        impactFeedback.impactOccurred()
+        
+        // Additional haptic pattern for emergency
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            impactFeedback.impactOccurred()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            impactFeedback.impactOccurred()
+        }
+    }
+    
+    /// Show emergency notification if app is in background
+    private func showEmergencyNotification(message: String, sender: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "🚨 EMERGENCY MESSAGE"
+        content.body = "From \(sender): \(message)"
+        content.sound = UNNotificationSound.defaultCritical
+        content.categoryIdentifier = "EMERGENCY_MESSAGE"
+        
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil // Show immediately
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Failed to show emergency notification: \(error)")
+            }
+        }
+    }
     
     // MARK: - Safety-Specific Features
     

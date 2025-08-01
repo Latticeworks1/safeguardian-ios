@@ -4,10 +4,28 @@ struct MeshChatView: View {
     @StateObject private var meshManager = SafeGuardianMeshManager()
     @State private var newMessage = ""
     @State private var showingEmergencyAlert = false
+    @State private var emergencyFlashMessage: SafeGuardianMessage?
+    @State private var showEmergencyFlash = false
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // Emergency Flash Alert (appears at top when emergency message received)
+                if showEmergencyFlash, let emergencyMessage = emergencyFlashMessage {
+                    EmergencyFlashAlert(message: emergencyMessage)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.8).combined(with: .opacity),
+                            removal: .scale(scale: 0.8).combined(with: .opacity)
+                        ))
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                showEmergencyFlash = false
+                            }
+                        }
+                }
+                
                 // Enhanced Connection Status Bar
                 MeshConnectionStatusSection(meshManager: meshManager)
                 
@@ -49,6 +67,26 @@ struct MeshChatView: View {
             .onAppear {
                 // BitChat automatically starts scanning for peers
                 print("SafeGuardian mesh chat initialized")
+            }
+            .onChange(of: meshManager.messages) { _, newMessages in
+                // Check for new emergency messages
+                if let latestMessage = newMessages.last,
+                   meshManager.isEmergencyMessage(latestMessage.content),
+                   latestMessage.sender != meshManager.nickname {
+                    
+                    // Show emergency flash alert
+                    emergencyFlashMessage = latestMessage
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        showEmergencyFlash = true
+                    }
+                    
+                    // Auto-hide after 10 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            showEmergencyFlash = false
+                        }
+                    }
+                }
             }
         }
     }

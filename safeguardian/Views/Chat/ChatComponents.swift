@@ -1202,3 +1202,89 @@ struct ConnectionQualityIndicator: View {
         }
     }
 }
+
+
+// MARK: - Emergency Flash Alert
+struct EmergencyFlashAlert: View {
+    let message: SafeGuardianMessage
+    @State private var isFlashing = false
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Flashing emergency icon
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title2)
+                .foregroundStyle(.white)
+                .scaleEffect(isFlashing ? 1.2 : 1.0)
+                .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: isFlashing)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("EMERGENCY MESSAGE")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(.white)
+                
+                HStack(spacing: 4) {
+                    Text("From: \(message.sender)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                    
+                    Spacer()
+                    
+                    Text(message.timestamp, style: .time)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                
+                Text(message.content)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(3)
+            }
+            
+            Spacer()
+            
+            VStack(spacing: 8) {
+                Button(action: {
+                    // Quick action: Call 911
+                    if let url = URL(string: "tel://911") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    Text("CALL 911")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.white, in: Capsule())
+                }
+                
+                Button(action: {
+                    // Quick action: Open map
+                }) {
+                    Image(systemName: "map.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(.white.opacity(0.2), in: Circle())
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [.red, .red.opacity(0.8)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .red.opacity(0.4), radius: 8, x: 0, y: 4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+        )
+        .onAppear {
+            isFlashing = true
+        }
+    }
+}
