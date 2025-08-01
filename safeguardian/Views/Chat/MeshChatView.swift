@@ -68,6 +68,180 @@ struct MeshChatView: View {
     }
 }
 
+// MARK: - Minimal Chat View
+struct MinimalChatView: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    @State private var newMessage = ""
+    @State private var showingEmergencyAlert = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Enhanced header with connection status
+            VStack(spacing: 0) {
+                MinimalTopHeader(title: "Chat", meshManager: meshManager)
+                MeshConnectionStatusSection(meshManager: meshManager)
+            }
+            
+            // Messages or empty state
+            if meshManager.messages.isEmpty {
+                EmptyMeshChatView(meshManager: meshManager)
+            } else {
+                MeshMessagesList(meshManager: meshManager)
+            }
+            
+            // Minimal input
+            MessageInputSection(
+                newMessage: $newMessage,
+                meshManager: meshManager,
+                showingEmergencyAlert: $showingEmergencyAlert,
+                onSend: handleSendMessage
+            )
+        }
+        .background(Color(.systemBackground))
+        .alert("Emergency Message", isPresented: $showingEmergencyAlert) {
+            Button("Send Emergency", role: .destructive) {
+                sendEmergencyMessage()
+            }
+            Button("Send Normal", role: .cancel) {
+                sendNormalMessage()
+            }
+        } message: {
+            Text("This message contains emergency keywords. Would you like to send it as a priority emergency broadcast?")
+        }
+        .alert("Message Error", isPresented: $showingError) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
+        }
+    }
+    
+    private func handleSendMessage() {
+        let trimmedMessage = newMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Input validation
+        guard !trimmedMessage.isEmpty else { return }
+        
+        guard trimmedMessage.count <= 500 else {
+            errorMessage = "Message is too long. Please keep messages under 500 characters."
+            showingError = true
+            return
+        }
+        
+        if isEmergencyMessage(trimmedMessage) {
+            showingEmergencyAlert = true
+        } else {
+            sendNormalMessage()
+        }
+    }
+    
+    private func isEmergencyMessage(_ message: String) -> Bool {
+        let emergencyKeywords = ["emergency", "help", "urgent", "danger", "911", "sos", "fire", "medical", "police"]
+        let lowercased = message.lowercased()
+        return emergencyKeywords.contains { lowercased.contains($0) }
+    }
+    
+    private func sendEmergencyMessage() {
+        let message = newMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        meshManager.sendEmergencyBroadcast(message)
+        newMessage = ""
+    }
+    
+    private func sendNormalMessage() {
+        let message = newMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        meshManager.sendMessage(message)
+        newMessage = ""
+    }
+}
+
+// MARK: - Minimal Empty Chat
+struct MinimalEmptyChat: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            MinimalEmptyState(
+                icon: "message",
+                title: "No messages",
+                subtitle: "Connect with nearby users to start chatting"
+            )
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Minimal Message Bubble
+struct MinimalMessageBubble: View {
+    let message: SafeGuardianMessage
+    let isFromCurrentUser: Bool
+    
+    var body: some View {
+        HStack {
+            if isFromCurrentUser {
+                Spacer(minLength: 50)
+            }
+            
+            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 2) {
+                if !isFromCurrentUser {
+                    Text(message.sender)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                
+                Text(message.content)
+                    .font(.system(size: 15, weight: .regular, design: .default))
+                    .foregroundStyle(isFromCurrentUser ? .white : .primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(isFromCurrentUser ? Color.blue : Color(.systemGray5))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                
+                Text(message.timestamp, style: .time)
+                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+            
+            if !isFromCurrentUser {
+                Spacer(minLength: 50)
+            }
+        }
+    }
+}
+
+// MARK: - Minimal Message Input
+struct MinimalMessageInput: View {
+    @Binding var text: String
+    let isConnected: Bool
+    let onSend: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            TextField("Message", text: $text)
+                .font(.system(size: 15, weight: .regular, design: .default))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .disabled(!isConnected)
+                .onSubmit(onSend)
+            
+            Button(action: onSend) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(canSend ? .blue : .gray)
+            }
+            .disabled(!canSend)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.regularMaterial)
+    }
+    
+    private var canSend: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && isConnected
+    }
+}
+
 struct MessageBubbleView: View {
     let message: SafeGuardianMessage
     let isCurrentUser: Bool

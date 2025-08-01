@@ -250,24 +250,7 @@ struct FeatureRow: View {
     }
 }
 
-struct DetailRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-            
-            Text(value)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.primary)
-        }
-    }
-}
+// DetailRow is now defined in ChatComponents.swift
 
 // MARK: - AI Generation Indicator
 struct NexaAIGenerationIndicator: View {

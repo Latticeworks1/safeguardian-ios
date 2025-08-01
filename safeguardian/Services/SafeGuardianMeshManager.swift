@@ -1,9 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
-
-// BitChat protocols and types are included directly in project
-// No separate import needed - using local BitChat implementation
+import bitchat
 
 /// SafeGuardian's mesh networking manager that wraps BitChat's proven P2P implementation
 class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
@@ -104,6 +102,58 @@ class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
         meshService.sendMessage(content)
     }
     
+    // Enhanced message retry functionality
+    func retryMessage(_ messageId: String) {
+        guard let messageIndex = messages.firstIndex(where: { $0.id == messageId }),
+              let deliveryStatus = messages[messageIndex].deliveryStatus,
+              deliveryStatus.needsRetry else {
+            return
+        }
+        
+        // Update status to sending
+        messages[messageIndex] = SafeGuardianMessage(
+            id: messages[messageIndex].id,
+            sender: messages[messageIndex].sender,
+            content: messages[messageIndex].content,
+            timestamp: messages[messageIndex].timestamp,
+            isRelay: messages[messageIndex].isRelay,
+            originalSender: messages[messageIndex].originalSender,
+            isPrivate: messages[messageIndex].isPrivate,
+            recipientNickname: messages[messageIndex].recipientNickname,
+            senderPeerID: messages[messageIndex].senderPeerID,
+            mentions: messages[messageIndex].mentions,
+            deliveryStatus: .sending
+        )
+        
+        // Attempt to resend 
+        meshService.sendMessage(messages[messageIndex].content)
+        
+        // Simulate delivery status updates (would be replaced with real BitChat callbacks)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.updateMessageDeliveryStatus(messageId: messageId, status: .sent)
+        }
+    }
+    
+    func updateMessageDeliveryStatus(messageId: String, status: SafeGuardianDeliveryStatus) {
+        guard let messageIndex = messages.firstIndex(where: { $0.id == messageId }) else {
+            return
+        }
+        
+        messages[messageIndex] = SafeGuardianMessage(
+            id: messages[messageIndex].id,
+            sender: messages[messageIndex].sender,
+            content: messages[messageIndex].content,
+            timestamp: messages[messageIndex].timestamp,
+            isRelay: messages[messageIndex].isRelay,
+            originalSender: messages[messageIndex].originalSender,
+            isPrivate: messages[messageIndex].isPrivate,
+            recipientNickname: messages[messageIndex].recipientNickname,
+            senderPeerID: messages[messageIndex].senderPeerID,
+            mentions: messages[messageIndex].mentions,
+            deliveryStatus: status
+        )
+    }
+    
     /// Send an emergency broadcast to all connected peers
     func sendEmergencyBroadcast(_ message: String) {
         let emergencyMessage = "🚨 EMERGENCY: \(message)"
@@ -162,7 +212,7 @@ class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
 // MARK: - SafeGuardian-Specific Types
 
 /// SafeGuardian's message model (lightweight wrapper for UI)
-struct SafeGuardianMessage: Identifiable {
+struct SafeGuardianMessage: Identifiable, Equatable {
     let id: String
     let sender: String
     let content: String
@@ -176,14 +226,37 @@ struct SafeGuardianMessage: Identifiable {
     let deliveryStatus: SafeGuardianDeliveryStatus?
 }
 
-/// SafeGuardian's delivery status (mirrors BitChat's)
-enum SafeGuardianDeliveryStatus {
+/// SafeGuardian's delivery status (mirrors BitChat's)  
+enum SafeGuardianDeliveryStatus: Equatable {
     case sending
     case sent
     case delivered(to: String, at: Date)
     case read(by: String, at: Date)
     case failed(reason: String)
     case partiallyDelivered(reached: Int, total: Int)
+    
+    // Additional metadata for enhanced status tracking
+    var isSuccessful: Bool {
+        switch self {
+        case .delivered, .read:
+            return true
+        case .partiallyDelivered(let reached, let total):
+            return reached > 0
+        default:
+            return false
+        }
+    }
+    
+    var needsRetry: Bool {
+        switch self {
+        case .failed:
+            return true
+        case .partiallyDelivered(let reached, let total):
+            return reached < total
+        default:
+            return false
+        }
+    }
 }
 
 /// Network quality levels for SafeGuardian UI

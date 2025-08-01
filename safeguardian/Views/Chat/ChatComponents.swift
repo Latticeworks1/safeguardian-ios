@@ -688,31 +688,6 @@ struct EmptyMeshChatView: View {
                     .lineLimit(nil)
             }
             
-            // Connection tip for offline state
-            if !meshManager.isConnected {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "lightbulb.fill")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                        Text("Connection Tip")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.orange)
-                    }
-                    
-                    Text("Make sure Bluetooth is enabled and you're near other SafeGuardian users.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.orange.opacity(0.1))
-                        .stroke(.orange.opacity(0.3), lineWidth: 1)
-                )
-            }
             
             Spacer()
         }
@@ -739,7 +714,8 @@ struct MeshMessagesList: View {
                     ForEach(meshManager.messages, id: \.id) { message in
                         EnhancedMessageBubble(
                             message: message,
-                            isCurrentUser: message.sender == meshManager.nickname
+                            isCurrentUser: message.sender == meshManager.nickname,
+                            meshManager: meshManager
                         )
                         .id(message.id)
                     }
@@ -765,29 +741,53 @@ struct MeshMessagesList: View {
 struct EnhancedMessageBubble: View {
     let message: SafeGuardianMessage
     let isCurrentUser: Bool
+    let meshManager: SafeGuardianMeshManager
+    @State private var showDetailedStatus = false
     
     var body: some View {
-        HStack {
-            if isCurrentUser {
-                Spacer()
-            }
-            
-            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                // Sender name for received messages
-                if !isCurrentUser && !message.sender.isEmpty {
-                    Text(message.sender)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+        VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 6) {
+            HStack {
+                if isCurrentUser {
+                    Spacer()
                 }
                 
-                // Message content
-                VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 2) {
+                VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
+                    // Sender name for received messages
+                    if !isCurrentUser && !message.sender.isEmpty {
+                        Text(message.sender)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    // Message content with context menu
                     Text(message.content)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         .background(messageBackgroundColor)
                         .foregroundStyle(messageTextColor)
                         .cornerRadius(18)
+                        .contextMenu {
+                            Button(action: {
+                                showDetailedStatus.toggle()
+                            }) {
+                                Label("Message Details", systemImage: "info.circle")
+                            }
+                            
+                            if isCurrentUser && message.deliveryStatus?.needsRetry == true {
+                                Button(action: {
+                                    meshManager.retryMessage(message.id)
+                                }) {
+                                    Label("Retry Send", systemImage: "arrow.clockwise")
+                                }
+                            }
+                            
+                            Button(action: {
+                                // Copy message logic would go here
+                                UIPasteboard.general.string = message.content
+                            }) {
+                                Label("Copy Message", systemImage: "doc.on.doc")
+                            }
+                        }
                     
                     // Message metadata
                     HStack(spacing: 4) {
@@ -795,69 +795,129 @@ struct EnhancedMessageBubble: View {
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                         
-                        // Delivery status for sent messages
+                        // Enhanced delivery status for sent messages
                         if isCurrentUser, let deliveryStatus = message.deliveryStatus {
-                            SafeGuardianDeliveryStatusIcon(status: deliveryStatus)
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    showDetailedStatus.toggle()
+                                }
+                            }) {
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    SafeGuardianDeliveryStatusIcon(status: deliveryStatus)
+                                    
+                                    // Show brief delivery info
+                                    if case .delivered(let to, _) = deliveryStatus {
+                                        Text("to \(to)")
+                                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                                            .foregroundStyle(.tertiary)
+                                    } else if case .read(let by, _) = deliveryStatus {
+                                        Text("read by \(by)")
+                                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                                            .foregroundStyle(.tertiary)
+                                    } else if case .failed(_) = deliveryStatus {
+                                        Text("tap to retry")
+                                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                                            .foregroundStyle(.orange)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
                         
-                        // Emergency indicator
-                        if message.content.lowercased().contains("emergency") || 
-                           message.content.lowercased().contains("help") {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.red)
+                        // Priority emergency indicator
+                        if isEmergencyMessage(message.content) {
+                            HStack(spacing: 2) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.red)
+                                Text("PRIORITY")
+                                    .font(.system(size: 8, weight: .heavy, design: .rounded))
+                                    .foregroundStyle(.red)
+                            }
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(.red.opacity(0.1), in: Capsule())
                         }
                     }
                 }
+                
+                if !isCurrentUser {
+                    Spacer()
+                }
             }
             
-            if !isCurrentUser {
-                Spacer()
+            // Expandable detailed status
+            if showDetailedStatus {
+                MessageStatusDetailView(message: message)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.8).combined(with: .opacity),
+                        removal: .scale(scale: 0.8).combined(with: .opacity)
+                    ))
             }
         }
     }
     
     private var messageBackgroundColor: Color {
-        if message.content.lowercased().contains("emergency") || 
-           message.content.lowercased().contains("help") {
+        if isEmergencyMessage(message.content) {
             return .red
         }
         return isCurrentUser ? .blue : Color(.systemGray5)
     }
     
     private var messageTextColor: Color {
-        if message.content.lowercased().contains("emergency") || 
-           message.content.lowercased().contains("help") {
+        if isEmergencyMessage(message.content) {
             return .white
         }
         return isCurrentUser ? .white : .primary
     }
+    
+    private func isEmergencyMessage(_ content: String) -> Bool {
+        let emergencyKeywords = ["emergency", "help", "urgent", "danger", "911", "sos"]
+        return emergencyKeywords.contains { content.lowercased().contains($0) }
+    }
 }
 
-// MARK: - SafeGuardian Delivery Status Icon
+// MARK: - Enhanced SafeGuardian Delivery Status Icon
 struct SafeGuardianDeliveryStatusIcon: View {
     let status: SafeGuardianDeliveryStatus
+    @State private var isAnimating = false
     
     var body: some View {
-        Image(systemName: iconName)
-            .font(.caption2)
-            .foregroundStyle(iconColor)
+        HStack(spacing: 2) {
+            Image(systemName: iconName)
+                .font(.caption2)
+                .foregroundStyle(iconColor)
+                .scaleEffect(isAnimating && shouldAnimate ? 1.1 : 1.0)
+                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isAnimating)
+            
+            if showProgress {
+                Text(progressText)
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onAppear {
+            isAnimating = shouldAnimate
+        }
+        .onChange(of: status) { _, _ in
+            isAnimating = shouldAnimate
+        }
     }
     
     private var iconName: String {
         switch status {
         case .sending:
-            return "clock"
+            return "clock.arrow.circlepath"
         case .sent:
-            return "checkmark"
-        case .delivered:
-            return "checkmark.circle"
-        case .read:
+            return "paperplane.fill"
+        case .delivered(_, _):
             return "checkmark.circle.fill"
-        case .failed:
-            return "xmark.circle"
-        case .partiallyDelivered:
-            return "checkmark.circle.badge.questionmark"
+        case .read(_, _):
+            return "eye.circle.fill"
+        case .failed(_):
+            return "exclamationmark.triangle.fill"
+        case .partiallyDelivered(let reached, let total):
+            return reached > total / 2 ? "checkmark.circle.badge.questionmark" : "clock.badge.questionmark"
         }
     }
     
@@ -867,14 +927,43 @@ struct SafeGuardianDeliveryStatusIcon: View {
             return .orange
         case .sent:
             return .blue
-        case .delivered:
+        case .delivered(_, _):
             return .green
-        case .read:
-            return .green
-        case .failed:
+        case .read(_, _):
+            return .cyan
+        case .failed(_):
             return .red
-        case .partiallyDelivered:
-            return .yellow
+        case .partiallyDelivered(let reached, let total):
+            return reached > total / 2 ? .yellow : .orange
+        }
+    }
+    
+    private var shouldAnimate: Bool {
+        switch status {
+        case .sending:
+            return true
+        case .failed(_):
+            return true
+        default:
+            return false
+        }
+    }
+    
+    private var showProgress: Bool {
+        switch status {
+        case .partiallyDelivered(_, _):
+            return true
+        default:
+            return false
+        }
+    }
+    
+    private var progressText: String {
+        switch status {
+        case .partiallyDelivered(let reached, let total):
+            return "\(reached)/\(total)"
+        default:
+            return ""
         }
     }
 }
@@ -898,7 +987,6 @@ struct MessageInputSection: View {
                 TextField("Type a message...", text: $newMessage, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
-                    .disabled(!meshManager.isConnected)
                 
                 Button(action: onSend) {
                     Image(systemName: "paperplane.fill")
@@ -907,7 +995,7 @@ struct MessageInputSection: View {
                         .frame(width: 36, height: 36)
                         .background(sendButtonColor, in: Circle())
                 }
-                .disabled(newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !meshManager.isConnected)
+                .disabled(newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding()
             .background(.regularMaterial)
@@ -921,7 +1009,7 @@ struct MessageInputSection: View {
     }
     
     private var sendButtonColor: Color {
-        if newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !meshManager.isConnected {
+        if newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return .gray
         }
         return isEmergencyMessage ? .red : .blue
@@ -946,6 +1034,129 @@ struct EmergencyMessageWarning: View {
         .padding(.vertical, 8)
         .background(.red.opacity(0.1))
     }
+}
+
+// MARK: - Advanced Message Status Detail View
+struct MessageStatusDetailView: View {
+    let message: SafeGuardianMessage
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            }) {
+                HStack(spacing: 4) {
+                    Text("Message Details")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
+            
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 6) {
+                    // Message ID
+                    DetailRow(label: "ID", value: String(message.id.prefix(8)) + "...")
+                    
+                    // Sender info
+                    if let senderPeerID = message.senderPeerID {
+                        DetailRow(label: "Peer ID", value: String(senderPeerID.prefix(8)) + "...")
+                    }
+                    
+                    // Delivery status details
+                    if let deliveryStatus = message.deliveryStatus {
+                        DetailRow(label: "Status", value: deliveryStatusDescription(deliveryStatus))
+                    }
+                    
+                    // Relay info
+                    if message.isRelay, let originalSender = message.originalSender {
+                        DetailRow(label: "Relayed from", value: originalSender)
+                    }
+                    
+                    // Emergency indicator
+                    if isEmergencyMessage(message.content) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.red)
+                            Text("Emergency Message")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.red)
+                        }
+                    }
+                    
+                    // Network quality at time of sending
+                    HStack(spacing: 4) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("Mesh quality: Good") // This would come from actual network quality
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+            }
+        }
+    }
+    
+    private func deliveryStatusDescription(_ status: SafeGuardianDeliveryStatus) -> String {
+        switch status {
+        case .sending:
+            return "Sending via mesh..."
+        case .sent:
+            return "Sent to mesh network"
+        case .delivered(let to, let at):
+            return "Delivered to \\(to) at \\(DateFormatter.timeFormatter.string(from: at))"
+        case .read(let by, let at):
+            return "Read by \\(by) at \\(DateFormatter.timeFormatter.string(from: at))"
+        case .failed(let reason):
+            return "Failed: \\(reason)"
+        case .partiallyDelivered(let reached, let total):
+            return "Delivered to \\(reached) of \\(total) peers"
+        }
+    }
+    
+    private func isEmergencyMessage(_ content: String) -> Bool {
+        let emergencyKeywords = ["emergency", "help", "urgent", "danger", "911", "sos"]
+        return emergencyKeywords.contains { content.lowercased().contains($0) }
+    }
+}
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label + ":")
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.tertiary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+extension DateFormatter {
+    static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
 }
 
 // MARK: - Connection Quality Indicator

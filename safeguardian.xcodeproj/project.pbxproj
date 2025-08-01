@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BAB869922E3BEE8700C06B86 /* bitchat in Frameworks */ = {isa = PBXBuildFile; productRef = BAB869912E3BEE8700C06B85 /* bitchat */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BA4114F12E31E23500F8145D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,22 +33,9 @@
 		BA4114FA2E31E23500F8145D /* safeguardianUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = safeguardianUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		BAB869812E3BEE8700C06B83 /* Exceptions for "safeguardian" folder in "safeguardian" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				bitchat,
-			);
-			target = BA4114DF2E31E23400F8145D /* safeguardian */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BA4114E22E31E23400F8145D /* safeguardian */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				BAB869812E3BEE8700C06B83 /* Exceptions for "safeguardian" folder in "safeguardian" target */,
-			);
 			path = safeguardian;
 			sourceTree = "<group>";
 		};
@@ -65,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BAB869922E3BEE8700C06B86 /* bitchat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +117,7 @@
 			);
 			name = safeguardian;
 			packageProductDependencies = (
+				BAB869912E3BEE8700C06B85 /* bitchat */,
 			);
 			productName = safeguardian;
 			productReference = BA4114E02E31E23400F8145D /* safeguardian.app */;
@@ -208,6 +201,9 @@
 			);
 			mainGroup = BA4114D72E31E23400F8145D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BAB869902E3BEE8700C06B84 /* XCRemoteSwiftPackageReference "bitchat" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BA4114E12E31E23400F8145D /* Products */;
 			projectDirPath = "";
@@ -423,7 +419,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = a.safeguardian;
+				PRODUCT_BUNDLE_IDENTIFIER = com.safeguardian.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -451,7 +447,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = a.safeguardian;
+				PRODUCT_BUNDLE_IDENTIFIER = com.safeguardian.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -468,7 +464,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = a.safeguardianTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.safeguardian.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -486,7 +482,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = a.safeguardianTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.safeguardian.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -502,7 +498,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = a.safeguardianUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.safeguardian.app.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -518,7 +514,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = a.safeguardianUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.safeguardian.app.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -567,6 +563,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BAB869902E3BEE8700C06B84 /* XCRemoteSwiftPackageReference "bitchat" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = ../safeguardian/bitchat;
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BAB869912E3BEE8700C06B85 /* bitchat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BAB869902E3BEE8700C06B84 /* XCRemoteSwiftPackageReference "bitchat" */;
+			productName = bitchat;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BA4114D82E31E23400F8145D /* Project object */;
 }
