@@ -247,26 +247,6 @@ struct SafetyMapBottomActions: View {
                     onTap: { onEmergencyAction(.fireStation) }
                 )
             }
-            
-            // Emergency Call Button
-            Button(action: {
-                if let url = URL(string: "tel://911") {
-                    UIApplication.shared.open(url)
-                }
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "phone.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                    
-                    Text("Emergency Call 911")
-                        .font(.system(size: 16, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(.red, in: RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
         }
         .padding()
     }
@@ -342,28 +322,12 @@ struct EmergencyServiceDetailView: View {
                         value: service.isOpen ? "Open 24/7" : "Closed"
                     )
                     
-                    ServiceDetailRow(
-                        icon: "phone.fill",
-                        title: "Emergency",
-                        value: "911"
-                    )
                 }
                 
                 Spacer()
                 
                 // Action Buttons
                 VStack(spacing: 12) {
-                    Button("Call 911") {
-                        if let url = URL(string: "tel://911") {
-                            UIApplication.shared.open(url)
-                        }
-                    }
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(.red, in: RoundedRectangle(cornerRadius: 12))
-                    
                     Button("Get Directions") {
                         let coordinate = CLLocationCoordinate2D(latitude: service.latitude, longitude: service.longitude)
                         let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
