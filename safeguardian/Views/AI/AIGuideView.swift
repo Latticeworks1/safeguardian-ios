@@ -220,7 +220,7 @@ class StreamingAIService: ObservableObject {
         let safetyResponse = generateSafetyResponse(for: prompt)
         
         // Stream character by character
-        for (index, char) in safetyResponse.enumerated() {
+        for (_, char) in safetyResponse.enumerated() {
             let shouldContinue = onToken(String(char), false)
             if !shouldContinue { break }
             
@@ -461,7 +461,7 @@ struct EnhancedEmptyAIState: View {
                         .foregroundStyle(.primary)
                     
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
-                        ForEach(Array(quickActions.enumerated()), id: \.offset) { index, actionData in
+                        ForEach(Array(quickActions.enumerated()), id: \.offset) { _, actionData in
                             let (icon, title, query) = actionData
                             AIQuickActionButton(icon: icon, title: title) {
                                 onQuickAction(query)
@@ -853,7 +853,7 @@ struct QuickSafetyActions: View {
                 .foregroundStyle(.secondary)
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2), spacing: 8) {
-                ForEach(Array(safetyActions.enumerated()), id: \.offset) { index, actionData in
+                ForEach(Array(safetyActions.enumerated()), id: \.offset) { _, actionData in
                     let (icon, title, query) = actionData
                     Button(action: { onAction(query) }) {
                         HStack(spacing: 8) {

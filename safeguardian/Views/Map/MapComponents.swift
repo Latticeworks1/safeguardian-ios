@@ -312,7 +312,7 @@ struct EmergencyServiceAnnotationView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
                 
-                if service.distance != nil {
+                if service.distance > 0 {
                     Text(service.distanceString())
                         .font(.caption2)
                         .foregroundStyle(.secondary)

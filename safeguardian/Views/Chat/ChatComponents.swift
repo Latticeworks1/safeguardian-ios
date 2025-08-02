@@ -814,7 +814,7 @@ struct EnhancedMessageBubble: View {
                                         Text("read by \(by)")
                                             .font(.system(size: 8, weight: .medium, design: .rounded))
                                             .foregroundStyle(.tertiary)
-                                    } else if case .failed(_) = deliveryStatus {
+                                    } else if case .failed = deliveryStatus {
                                         Text("tap to retry")
                                             .font(.system(size: 8, weight: .medium, design: .rounded))
                                             .foregroundStyle(.orange)
@@ -1116,13 +1116,13 @@ struct MessageStatusDetailView: View {
         case .sent:
             return "Sent to mesh network"
         case .delivered(let to, let at):
-            return "Delivered to \\(to) at \\(DateFormatter.timeFormatter.string(from: at))"
+            return "Delivered to \(to) at \(DateFormatter.timeFormatter.string(from: at))"
         case .read(let by, let at):
-            return "Read by \\(by) at \\(DateFormatter.timeFormatter.string(from: at))"
+            return "Read by \(by) at \(DateFormatter.timeFormatter.string(from: at))"
         case .failed(let reason):
-            return "Failed: \\(reason)"
+            return "Failed: \(reason)"
         case .partiallyDelivered(let reached, let total):
-            return "Delivered to \\(reached) of \\(total) peers"
+            return "Delivered to \(reached) of \(total) peers"
         }
     }
     

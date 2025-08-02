@@ -138,7 +138,7 @@ class LLM {
     // Safety-focused response generation using chat templates
     private func generateSafetyResponse(for prompt: String, config: GenerationConfig) -> String {
         // Create safety-focused chat messages
-        let messages: [NexaChatMessage] = [
+        let _ = [
             NexaChatMessage(role: .system, content: """
             You are SafeGuardian's emergency response AI assistant. Your primary mission is to help people stay safe during emergencies and disasters. 
 
