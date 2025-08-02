@@ -16,16 +16,79 @@ struct ProfileView: View {
                         onEditTap: { showingEditProfile = true }
                     )
                     
-                    // Connection Status Section with BitChat Integration
+                    // Enhanced Connection Status Section with BitChat Integration
                     ConnectionStatusSectionWithMesh(
                         profile: profileManager.userProfile,
                         meshManager: meshManager
                     )
                     
-                    // Safety Settings
+                    // Advanced Mesh Network Configuration
+                    MeshNetworkConfigurationSection(
+                        profileManager: profileManager,
+                        meshManager: meshManager
+                    )
+                    
+                    // Enhanced Emergency Contacts with Mesh Integration
+                    EnhancedEmergencyContactsSection(
+                        profileManager: profileManager
+                    )
+                    
+                    // Safety Preferences Categories
+                    SafetyPreferencesSection(
+                        profileManager: profileManager
+                    )
+                    
+                    // Privacy & Security Settings
                     SettingsSection(
-                        title: "Safety Settings",
-                        subtitle: "Configure emergency and safety features",
+                        title: "Privacy & Security",
+                        subtitle: "Control your privacy and mesh network data",
+                        icon: "lock.shield.fill",
+                        style: .privacy
+                    ) {
+                        SettingRow(
+                            icon: "eye.circle",
+                            title: "Show Online Status",
+                            subtitle: "Let others see when you're active on mesh network",
+                            value: profileManager.userProfile.showOnlineStatus ? "On" : "Off",
+                            style: .privacy,
+                            controlType: .toggle,
+                            action: { profileManager.toggleOnlineStatus() }
+                        )
+                        
+                        SettingRow(
+                            icon: "person.crop.circle.badge.questionmark",
+                            title: "Peer Discovery",
+                            subtitle: "Allow other devices to discover yours",
+                            value: profileManager.userProfile.allowPeerDiscovery ? "On" : "Off",
+                            style: .privacy,
+                            controlType: .toggle,
+                            action: { profileManager.togglePeerDiscovery() }
+                        )
+                        
+                        SettingRow(
+                            icon: "location.circle.fill",
+                            title: "Location Sharing",
+                            subtitle: "Share location with emergency contacts and mesh network",
+                            value: profileManager.userProfile.shareLocation ? "On" : "Off",
+                            style: .privacy,
+                            controlType: .toggle,
+                            action: { profileManager.toggleLocationSharing() }
+                        )
+                        
+                        SettingRow(
+                            icon: "moon.fill",
+                            title: "Dark Mode",
+                            value: profileManager.userProfile.darkModeEnabled ? "On" : "Off",  
+                            style: .privacy,
+                            controlType: .toggle,
+                            action: { profileManager.toggleDarkMode(themeManager: themeManager) }
+                        )
+                    }
+                    
+                    // Basic Safety Settings (for quick access)
+                    SettingsSection(
+                        title: "Basic Safety Settings",
+                        subtitle: "Quick access to essential safety features",
                         icon: "shield.checkered",
                         style: .safety
                     ) {
@@ -40,82 +103,30 @@ struct ProfileView: View {
                         )
                         
                         SettingRow(
-                            icon: "location.fill",
-                            title: "Share Location",
-                            subtitle: "Share location with emergency contacts",
-                            value: profileManager.userProfile.shareLocation ? "On" : "Off",
-                            style: .safety,
-                            controlType: .toggle,
-                            action: { profileManager.toggleLocationSharing() }
-                        )
-                        
-                        SettingRow(
                             icon: "antenna.radiowaves.left.and.right",
                             title: "Auto-Connect Mesh",
-                            subtitle: "Automatically connect to nearby users",
+                            subtitle: "Automatically connect to nearby SafeGuardian users",
                             value: profileManager.userProfile.autoConnectMesh ? "On" : "Off",
                             style: .safety,
                             controlType: .toggle,
                             action: { profileManager.toggleAutoConnectMesh() }
                         )
-                    }
-                    
-                    // Privacy Settings
-                    SettingsSection(
-                        title: "Privacy & Security",
-                        subtitle: "Control your privacy and data",
-                        icon: "lock.shield",
-                        style: .privacy
-                    ) {
-                        SettingRow(
-                            icon: "eye",
-                            title: "Show Online Status",
-                            subtitle: "Let others see when you're active",
-                            value: profileManager.userProfile.showOnlineStatus ? "On" : "Off",
-                            style: .privacy,
-                            controlType: .toggle,
-                            action: { profileManager.toggleOnlineStatus() }
-                        )
                         
                         SettingRow(
-                            icon: "moon.fill",
-                            title: "Dark Mode",
-                            value: profileManager.userProfile.darkModeEnabled ? "On" : "Off",
-                            style: .privacy,
-                            controlType: .toggle,
-                            action: { profileManager.toggleDarkMode(themeManager: themeManager) }
-                        )
-                    }
-                    
-                    // Emergency Contacts
-                    SettingsSection(
-                        title: "Emergency Contacts",
-                        subtitle: "People to contact in emergencies",
-                        icon: "person.2.badge.plus",
-                        style: .emergency
-                    ) {
-                        ForEach(profileManager.emergencyContacts.indices, id: \.self) { index in
-                            let contact = profileManager.emergencyContacts[index]
-                            SettingRow(
-                                icon: "person.fill",
-                                title: contact.name,
-                                subtitle: contact.phone,
-                                value: contact.relationship,
-                                style: .emergency,
-                                controlType: .display,
-                                action: {}
-                            )
-                        }
-                        
-                        SettingRow(
-                            icon: "plus.circle",
-                            title: "Add Emergency Contact",
-                            value: "",
+                            icon: "exclamationmark.triangle.fill",
+                            title: "Emergency Broadcast",
+                            subtitle: "Enable priority emergency messaging across mesh network",
+                            value: profileManager.userProfile.emergencyBroadcastEnabled ? "On" : "Off",
                             style: .emergency,
-                            controlType: .action,
-                            action: { /* Add contact action */ }
+                            controlType: .toggle,
+                            action: { profileManager.toggleEmergencyBroadcast() }
                         )
                     }
+                    
+                    // Settings Backup and Restore
+                    SettingsBackupSection(
+                        profileManager: profileManager
+                    )
                 }
                 .padding(.vertical)
             }

@@ -1,6 +1,21 @@
 import SwiftUI
 import Foundation
 
+// MARK: - Settings Export/Import Structure
+struct SettingsExport: Codable {
+    let userProfile: UserProfile
+    let enhancedEmergencyContacts: [EnhancedEmergencyContact]
+    let exportDate: Date
+    let version: String
+    
+    init(userProfile: UserProfile, enhancedEmergencyContacts: [EnhancedEmergencyContact], exportDate: Date, version: String = "1.0") {
+        self.userProfile = userProfile
+        self.enhancedEmergencyContacts = enhancedEmergencyContacts
+        self.exportDate = exportDate
+        self.version = version
+    }
+}
+
 // MARK: - Profile Manager
 class ProfileManager: ObservableObject {
     @Published var userProfile: UserProfile
@@ -8,8 +23,12 @@ class ProfileManager: ObservableObject {
     private let userDefaults = UserDefaults.standard
     private let profileKey = "SafeGuardian.UserProfile"
     private let emergencyContactsKey = "SafeGuardian.EmergencyContacts"
+    private let enhancedContactsKey = "SafeGuardian.EnhancedEmergencyContacts"
+    private let meshDiagnosticsKey = "SafeGuardian.MeshDiagnostics"
     
     @Published var emergencyContacts: [EmergencyContact] = []
+    @Published var enhancedEmergencyContacts: [EnhancedEmergencyContact] = []
+    @Published var meshDiagnostics: MeshNetworkDiagnostics?
     
     init() {
         // Load saved profile or create default
@@ -36,6 +55,8 @@ class ProfileManager: ObservableObject {
         
         // Load emergency contacts
         loadEmergencyContacts()
+        loadEnhancedEmergencyContacts()
+        loadMeshDiagnostics()
     }
     
     // MARK: - Data Persistence
@@ -69,6 +90,60 @@ class ProfileManager: ObservableObject {
             userDefaults.set(encodedData, forKey: emergencyContactsKey)
         } catch {
             print("Failed to save emergency contacts: \(error)")
+        }
+    }
+    
+    private func loadEnhancedEmergencyContacts() {
+        if let savedData = userDefaults.data(forKey: enhancedContactsKey),
+           let contacts = try? JSONDecoder().decode([EnhancedEmergencyContact].self, from: savedData) {
+            self.enhancedEmergencyContacts = contacts
+        } else {
+            // Create default enhanced emergency contacts with mesh network capabilities
+            self.enhancedEmergencyContacts = [
+                EnhancedEmergencyContact(
+                    name: "Emergency Services",
+                    phone: "911",
+                    relationship: "Emergency",
+                    isVerified: true,
+                    meshNetworkEnabled: true,
+                    priorityLevel: .emergency
+                ),
+                EnhancedEmergencyContact(
+                    name: "Poison Control",
+                    phone: "1-800-222-1222",
+                    relationship: "Emergency",
+                    isVerified: true,
+                    meshNetworkEnabled: false,
+                    priorityLevel: .emergency
+                )
+            ]
+            saveEnhancedEmergencyContacts()
+        }
+    }
+    
+    private func saveEnhancedEmergencyContacts() {
+        do {
+            let encodedData = try JSONEncoder().encode(enhancedEmergencyContacts)
+            userDefaults.set(encodedData, forKey: enhancedContactsKey)
+        } catch {
+            print("Failed to save enhanced emergency contacts: \(error)")
+        }
+    }
+    
+    private func loadMeshDiagnostics() {
+        if let savedData = userDefaults.data(forKey: meshDiagnosticsKey),
+           let diagnostics = try? JSONDecoder().decode(MeshNetworkDiagnostics.self, from: savedData) {
+            self.meshDiagnostics = diagnostics
+        }
+    }
+    
+    private func saveMeshDiagnostics() {
+        guard let diagnostics = meshDiagnostics else { return }
+        do {
+            let encodedData = try JSONEncoder().encode(diagnostics)
+            userDefaults.set(encodedData, forKey: meshDiagnosticsKey)
+        } catch {
+            print("Failed to save mesh diagnostics: \(error)")
         }
     }
     
@@ -129,6 +204,176 @@ class ProfileManager: ObservableObject {
     func toggleOnlineStatus() {
         userProfile.showOnlineStatus.toggle()
         saveProfile()
+    }
+    
+    // MARK: - Advanced Mesh Network Settings
+    
+    func updateMeshDisplayName(_ name: String) {
+        userProfile.meshDisplayName = name
+        saveProfile()
+    }
+    
+    func togglePeerDiscovery() {
+        userProfile.allowPeerDiscovery.toggle()
+        saveProfile()
+    }
+    
+    func toggleEmergencyBroadcast() {
+        userProfile.emergencyBroadcastEnabled.toggle()
+        saveProfile()
+    }
+    
+    func toggleMeshEncryption() {
+        userProfile.meshEncryptionEnabled.toggle()
+        saveProfile()
+    }
+    
+    func toggleAutoRetryMessages() {
+        userProfile.autoRetryFailedMessages.toggle()
+        saveProfile()
+    }
+    
+    func updateMaxPeerConnections(_ count: Int) {
+        userProfile.maxPeerConnections = max(1, min(count, 50)) // Limit between 1-50
+        saveProfile()
+    }
+    
+    func updateConnectionTimeout(_ seconds: Int) {
+        userProfile.connectionTimeoutSeconds = max(5, min(seconds, 300)) // Limit between 5-300 seconds
+        saveProfile()
+    }
+    
+    func toggleEmergencyContactMeshSharing() {
+        userProfile.emergencyContactMeshSharing.toggle()
+        saveProfile()
+    }
+    
+    func updateLocationSharingRadius(_ radius: Double) {
+        userProfile.locationSharingRadius = max(0.1, min(radius, 50.0)) // Limit between 0.1-50 km
+        saveProfile()
+    }
+    
+    func updateMeshNetworkPriority(_ priority: MeshNetworkPriority) {
+        userProfile.meshNetworkPriority = priority
+        saveProfile()
+    }
+    
+    func updateEncryptionLevel(_ level: EncryptionLevel) {
+        userProfile.encryptionLevel = level
+        saveProfile()
+    }
+    
+    func updatePeerTrustLevel(_ level: PeerTrustLevel) {
+        userProfile.peerTrustLevel = level
+        saveProfile()
+    }
+    
+    func updateDataUsageLimit(_ limit: DataUsageLimit) {
+        userProfile.dataUsageLimit = limit
+        saveProfile()
+    }
+    
+    func updateEmergencyAlertTypes(_ types: [EmergencyAlertType]) {
+        userProfile.emergencyAlertTypes = types
+        saveProfile()
+    }
+    
+    func updateSafetyProtocolLevel(_ level: SafetyProtocolLevel) {
+        userProfile.safetyProtocolLevel = level
+        saveProfile()
+    }
+    
+    func updateCrisisResponseMode(_ mode: CrisisResponseMode) {
+        userProfile.crisisResponseMode = mode
+        saveProfile()
+    }
+    
+    // MARK: - Enhanced Emergency Contact Management
+    
+    func addEnhancedEmergencyContact(_ contact: EnhancedEmergencyContact) {
+        enhancedEmergencyContacts.append(contact)
+        saveEnhancedEmergencyContacts()
+    }
+    
+    func removeEnhancedEmergencyContact(at index: Int) {
+        guard index < enhancedEmergencyContacts.count else { return }
+        enhancedEmergencyContacts.remove(at: index)
+        saveEnhancedEmergencyContacts()
+    }
+    
+    func updateContactPriority(contactId: UUID, priority: ContactPriorityLevel) {
+        if let index = enhancedEmergencyContacts.firstIndex(where: { $0.id == contactId }) {
+            let contact = enhancedEmergencyContacts[index]
+            enhancedEmergencyContacts[index] = EnhancedEmergencyContact(
+                name: contact.name,
+                phone: contact.phone,
+                relationship: contact.relationship,
+                isVerified: contact.isVerified,
+                meshNetworkEnabled: contact.meshNetworkEnabled,
+                priorityLevel: priority,
+                lastVerified: contact.lastVerified,
+                meshPeerID: contact.meshPeerID
+            )
+            saveEnhancedEmergencyContacts()
+        }
+    }
+    
+    func verifyEmergencyContact(contactId: UUID) {
+        if let index = enhancedEmergencyContacts.firstIndex(where: { $0.id == contactId }) {
+            let contact = enhancedEmergencyContacts[index]
+            enhancedEmergencyContacts[index] = EnhancedEmergencyContact(
+                name: contact.name,
+                phone: contact.phone,
+                relationship: contact.relationship,
+                isVerified: true,
+                meshNetworkEnabled: contact.meshNetworkEnabled,
+                priorityLevel: contact.priorityLevel,
+                lastVerified: Date(),
+                meshPeerID: contact.meshPeerID
+            )
+            saveEnhancedEmergencyContacts()
+        }
+    }
+    
+    // MARK: - Settings Backup and Restore
+    
+    func exportSettings() -> Data? {
+        let settingsExport = SettingsExport(
+            userProfile: userProfile,
+            enhancedEmergencyContacts: enhancedEmergencyContacts,
+            exportDate: Date()
+        )
+        
+        return try? JSONEncoder().encode(settingsExport)
+    }
+    
+    func importSettings(from data: Data) -> Bool {
+        guard let settingsImport = try? JSONDecoder().decode(SettingsExport.self, from: data) else {
+            return false
+        }
+        
+        userProfile = settingsImport.userProfile
+        enhancedEmergencyContacts = settingsImport.enhancedEmergencyContacts
+        
+        saveProfile()
+        saveEnhancedEmergencyContacts()
+        
+        return true
+    }
+    
+    // MARK: - Mesh Network Diagnostics
+    
+    func updateMeshDiagnostics(connectedPeers: Int, signalStrength: Double, latency: TimeInterval, throughput: Double, errorRate: Double, batteryImpact: Double) {
+        meshDiagnostics = MeshNetworkDiagnostics(
+            timestamp: Date(),
+            connectedPeers: connectedPeers,
+            signalStrength: signalStrength,
+            latency: latency,
+            throughput: throughput,
+            errorRate: errorRate,
+            batteryImpact: batteryImpact
+        )
+        saveMeshDiagnostics()
     }
     
     // MARK: - Data Validation
@@ -923,6 +1168,590 @@ struct EditProfileView: View {
             }
         }
     }
+}
+
+// MARK: - Advanced Mesh Network Configuration Section
+struct MeshNetworkConfigurationSection: View {
+    @ObservedObject var profileManager: ProfileManager
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    @State private var showingAdvancedSettings = false
+    
+    var body: some View {
+        SettingsSection(
+            title: "Mesh Network Configuration",
+            subtitle: "Advanced BitChat P2P networking settings",
+            icon: "antenna.radiowaves.left.and.right.circle",
+            style: .safety
+        ) {
+            // Basic connection status
+            SettingRow(
+                icon: "antenna.radiowaves.left.and.right",
+                title: "Network Status",
+                subtitle: meshManager.isConnected ? "Connected to \(meshManager.connectedPeers.count) peers" : "Searching for peers",
+                value: meshManager.isConnected ? "Active" : "Offline",
+                style: meshManager.isConnected ? .safety : .warning,
+                controlType: .display,
+                action: {}
+            )
+            
+            // Mesh display name
+            SettingRow(
+                icon: "person.text.rectangle",
+                title: "Display Name",
+                subtitle: "How others see you on the mesh network",
+                value: profileManager.userProfile.meshDisplayName,
+                style: .standard,
+                controlType: .navigation,
+                action: { /* Edit display name */ }
+            )
+            
+            // Peer discovery
+            SettingRow(
+                icon: "eye.circle",
+                title: "Peer Discovery",
+                subtitle: "Allow others to discover your device",
+                value: profileManager.userProfile.allowPeerDiscovery ? "On" : "Off",
+                style: .privacy,
+                controlType: .toggle,
+                action: { profileManager.togglePeerDiscovery() }
+            )
+            
+            // Emergency broadcast
+            SettingRow(
+                icon: "exclamationmark.triangle.fill",
+                title: "Emergency Broadcast",
+                subtitle: "Enable priority emergency messaging",
+                value: profileManager.userProfile.emergencyBroadcastEnabled ? "On" : "Off",
+                style: .emergency,
+                controlType: .toggle,
+                action: { profileManager.toggleEmergencyBroadcast() }
+            )
+            
+            // Encryption status
+            SettingRow(
+                icon: "lock.shield",
+                title: "Mesh Encryption",
+                subtitle: "End-to-end encryption via Noise Protocol",
+                value: profileManager.userProfile.meshEncryptionEnabled ? "Enabled" : "Disabled",
+                style: .safety,
+                controlType: .toggle,
+                action: { profileManager.toggleMeshEncryption() }
+            )
+            
+            // Advanced settings button
+            SettingRow(
+                icon: "gearshape.2",
+                title: "Advanced Settings",
+                subtitle: "Configure connection limits, timeouts, and protocols",
+                value: "",
+                style: .standard,
+                controlType: .navigation,
+                action: { showingAdvancedSettings = true }
+            )
+        }
+        .sheet(isPresented: $showingAdvancedSettings) {
+            AdvancedMeshSettingsView(profileManager: profileManager, meshManager: meshManager)
+        }
+    }
+}
+
+// MARK: - Advanced Mesh Settings Detail View
+struct AdvancedMeshSettingsView: View {
+    @ObservedObject var profileManager: ProfileManager
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Connection Settings") {
+                    HStack {
+                        Text("Max Peer Connections")
+                        Spacer()
+                        Text("\(profileManager.userProfile.maxPeerConnections)")
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("Connection Timeout")
+                        Spacer()
+                        Text("\(profileManager.userProfile.connectionTimeoutSeconds)s")
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("Network Priority")
+                        Spacer()
+                        Text(profileManager.userProfile.meshNetworkPriority.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                Section("Security Settings") {
+                    HStack {
+                        Text("Encryption Level")
+                        Spacer()
+                        Text(profileManager.userProfile.encryptionLevel.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("Peer Trust Level")
+                        Spacer()
+                        Text(profileManager.userProfile.peerTrustLevel.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                Section("Data Usage") {
+                    HStack {
+                        Text("Data Usage Limit")
+                        Spacer()
+                        Text(profileManager.userProfile.dataUsageLimit.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("Location Sharing Radius")
+                        Spacer()
+                        Text(String(format: "%.1f km", profileManager.userProfile.locationSharingRadius))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                if let diagnostics = profileManager.meshDiagnostics {
+                    Section("Network Diagnostics") {
+                        DiagnosticsRow(title: "Connected Peers", value: "\(diagnostics.connectedPeers)")
+                        DiagnosticsRow(title: "Signal Strength", value: String(format: "%.1f%%", diagnostics.signalStrength))
+                        DiagnosticsRow(title: "Latency", value: String(format: "%.0fms", diagnostics.latency * 1000))
+                        DiagnosticsRow(title: "Network Health", value: diagnostics.overallHealth.displayName, healthColor: diagnostics.overallHealth.color)
+                    }
+                }
+            }
+            .navigationTitle("Advanced Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+struct DiagnosticsRow: View {
+    let title: String
+    let value: String
+    let healthColor: Color?
+    
+    init(title: String, value: String, healthColor: Color? = nil) {
+        self.title = title
+        self.value = value
+        self.healthColor = healthColor
+    }
+    
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(healthColor ?? .secondary)
+                .fontWeight(healthColor != nil ? .medium : .regular)
+        }
+    }
+}
+
+// MARK: - Enhanced Emergency Contacts Section
+struct EnhancedEmergencyContactsSection: View {
+    @ObservedObject var profileManager: ProfileManager
+    @State private var showingAddContact = false
+    @State private var showingContactDetail: EnhancedEmergencyContact?
+    
+    var body: some View {
+        SettingsSection(
+            title: "Emergency Contacts",
+            subtitle: "Mesh network-enabled emergency contacts with priority levels",
+            icon: "person.2.badge.plus.fill",
+            style: .emergency
+        ) {
+            ForEach(profileManager.enhancedEmergencyContacts) { contact in
+                EnhancedContactRow(
+                    contact: contact,
+                    onTap: { showingContactDetail = contact }
+                )
+            }
+            
+            SettingRow(
+                icon: "plus.circle.fill",
+                title: "Add Emergency Contact",
+                subtitle: "Add contact with mesh network integration",
+                value: "",
+                style: .emergency,
+                controlType: .action,
+                action: { showingAddContact = true }
+            )
+        }
+        .sheet(isPresented: $showingAddContact) {
+            AddEnhancedContactView(profileManager: profileManager)
+        }
+        .sheet(item: $showingContactDetail) { contact in
+            ContactDetailView(contact: contact, profileManager: profileManager)
+        }
+    }
+}
+
+struct EnhancedContactRow: View {
+    let contact: EnhancedEmergencyContact
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                // Priority level indicator
+                Circle()
+                    .fill(contact.priorityLevel.color)
+                    .frame(width: 8, height: 8)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(contact.name)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                        
+                        if contact.isVerified {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.green)
+                        }
+                        
+                        if contact.meshNetworkEnabled {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                .font(.caption2)  
+                                .foregroundStyle(.blue)
+                        }
+                        
+                        Spacer()
+                    }
+                    
+                    Text("\(contact.phone) • \(contact.relationship)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    
+                    Text(contact.priorityLevel.displayName)
+                        .font(.caption2)
+                        .foregroundStyle(contact.priorityLevel.color)
+                        .fontWeight(.medium)
+                }
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(ModernButtonStyle(color: .clear))
+    }
+}
+
+// MARK: - Add Enhanced Contact View
+struct AddEnhancedContactView: View {
+    @ObservedObject var profileManager: ProfileManager
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var name = ""
+    @State private var phone = ""
+    @State private var relationship = ""
+    @State private var meshEnabled = true
+    @State private var priorityLevel: ContactPriorityLevel = .normal
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("Contact Information") {
+                    TextField("Name", text: $name)
+                    TextField("Phone Number", text: $phone)
+                        .keyboardType(.phonePad)
+                    TextField("Relationship", text: $relationship)
+                }
+                
+                Section("Emergency Settings") {
+                    Picker("Priority Level", selection: $priorityLevel) {
+                        ForEach(ContactPriorityLevel.allCases, id: \.self) { level in
+                            Text(level.displayName).tag(level)
+                        }
+                    }
+                    
+                    Toggle("Mesh Network Enabled", isOn: $meshEnabled)
+                }
+                
+                Section {
+                    Text(priorityLevel.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Add Contact")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        let contact = EnhancedEmergencyContact(
+                            name: name,
+                            phone: phone,
+                            relationship: relationship,
+                            meshNetworkEnabled: meshEnabled,
+                            priorityLevel: priorityLevel
+                        )
+                        profileManager.addEnhancedEmergencyContact(contact)
+                        dismiss()
+                    }
+                    .disabled(name.isEmpty || phone.isEmpty)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Contact Detail View
+struct ContactDetailView: View {
+    let contact: EnhancedEmergencyContact
+    @ObservedObject var profileManager: ProfileManager
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Contact Information") {
+                    ProfileDetailRow(title: "Name", value: contact.name)
+                    ProfileDetailRow(title: "Phone", value: contact.phone)
+                    ProfileDetailRow(title: "Relationship", value: contact.relationship)
+                }
+                
+                Section("Emergency Settings") {
+                    HStack {
+                        Text("Priority Level")
+                        Spacer()
+                        Text(contact.priorityLevel.displayName)
+                            .foregroundStyle(contact.priorityLevel.color)
+                            .fontWeight(.medium)
+                    }
+                    
+                    HStack {
+                        Text("Verification Status")
+                        Spacer()
+                        HStack(spacing: 4) {
+                            if contact.isVerified {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundStyle(.green)
+                                Text("Verified")
+                                    .foregroundStyle(.green)
+                            } else {
+                                Image(systemName: "questionmark.circle")
+                                    .foregroundStyle(.orange)
+                                Text("Unverified")
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+                        .font(.caption)
+                    }
+                    
+                    HStack {
+                        Text("Mesh Network")
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Image(systemName: contact.meshNetworkEnabled ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
+                                .foregroundStyle(contact.meshNetworkEnabled ? .blue : .gray)
+                            Text(contact.meshNetworkEnabled ? "Enabled" : "Disabled")
+                                .foregroundStyle(contact.meshNetworkEnabled ? .blue : .gray)
+                        }
+                        .font(.caption)
+                    }
+                }
+                
+                if let lastVerified = contact.lastVerified {
+                    Section("Verification") {
+                        ProfileDetailRow(title: "Last Verified", value: RelativeDateTimeFormatter().localizedString(for: lastVerified, relativeTo: Date()))
+                    }
+                }
+                
+                Section("Actions") {
+                    if !contact.isVerified {
+                        Button("Verify Contact") {
+                            profileManager.verifyEmergencyContact(contactId: contact.id)
+                            dismiss()
+                        }
+                        .foregroundStyle(.green)
+                    }
+                    
+                    Button("Remove Contact") {
+                        if let index = profileManager.enhancedEmergencyContacts.firstIndex(where: { $0.id == contact.id }) {
+                            profileManager.removeEnhancedEmergencyContact(at: index)
+                        }
+                        dismiss()
+                    }
+                    .foregroundStyle(.red)
+                }
+            }
+            .navigationTitle(contact.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+struct ProfileDetailRow: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - Safety Preferences Categories Section
+struct SafetyPreferencesSection: View {
+    @ObservedObject var profileManager: ProfileManager
+    
+    var body: some View {
+        SettingsSection(
+            title: "Safety Preferences",
+            subtitle: "Configure emergency alerts and crisis response settings",
+            icon: "shield.righthalf.filled",
+            style: .safety
+        ) {
+            // Emergency alert types
+            SettingRow(
+                icon: "exclamationmark.triangle.fill",
+                title: "Emergency Alert Types",
+                subtitle: "Select which emergency types to receive",
+                value: "\(profileManager.userProfile.emergencyAlertTypes.count) selected",
+                style: .emergency,
+                controlType: .navigation,
+                action: { /* Show alert types picker */ }
+            )
+            
+            // Safety protocol level
+            SettingRow(
+                icon: "shield.checkerboard",
+                title: "Safety Protocol Level",
+                subtitle: profileManager.userProfile.safetyProtocolLevel.description,
+                value: profileManager.userProfile.safetyProtocolLevel.displayName,
+                style: .safety,
+                controlType: .navigation,
+                action: { /* Show protocol level picker */ }
+            )
+            
+            // Crisis response mode
+            SettingRow(
+                icon: "alarm.fill",
+                title: "Crisis Response Mode",
+                subtitle: profileManager.userProfile.crisisResponseMode.description,
+                value: profileManager.userProfile.crisisResponseMode.displayName,
+                style: .emergency,
+                controlType: .navigation,
+                action: { /* Show response mode picker */ }
+            )
+            
+            // Location sharing radius
+            SettingRow(
+                icon: "location.circle",
+                title: "Location Sharing Radius",
+                subtitle: "How far to share location in emergencies",
+                value: String(format: "%.1f km", profileManager.userProfile.locationSharingRadius),
+                style: .privacy,
+                controlType: .navigation,
+                action: { /* Show radius picker */ }
+            )
+        }
+    }
+}
+
+// MARK: - Settings Backup/Restore Section
+struct SettingsBackupSection: View {
+    @ObservedObject var profileManager: ProfileManager
+    @State private var showingExportShare = false
+    @State private var showingImportPicker = false
+    @State private var exportData: Data?
+    
+    var body: some View {
+        SettingsSection(
+            title: "Settings Backup",
+            subtitle: "Export and import your safety settings",
+            icon: "icloud.and.arrow.up.fill",
+            style: .standard
+        ) {
+            SettingRow(
+                icon: "square.and.arrow.up",
+                title: "Export Settings",
+                subtitle: "Save your settings to share across devices",
+                value: "",
+                style: .standard,
+                controlType: .action,
+                action: {
+                    exportData = profileManager.exportSettings()
+                    showingExportShare = true
+                }
+            )
+            
+            SettingRow(
+                icon: "square.and.arrow.down",
+                title: "Import Settings",
+                subtitle: "Restore settings from backup file",
+                value: "",
+                style: .standard,
+                controlType: .action,
+                action: { showingImportPicker = true }
+            )
+        }
+        .sheet(isPresented: $showingExportShare) {
+            if let data = exportData {
+                ActivityViewController(activityItems: [data])
+            }
+        }
+        .fileImporter(
+            isPresented: $showingImportPicker,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    do {
+                        let data = try Data(contentsOf: url)
+                        _ = profileManager.importSettings(from: data)
+                    } catch {
+                        print("Failed to import settings: \(error)")
+                    }
+                }
+            case .failure(let error):
+                print("Import failed: \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - Activity View Controller for Sharing
+struct ActivityViewController: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {
