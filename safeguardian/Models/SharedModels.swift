@@ -301,6 +301,7 @@ struct AIMessage: Identifiable {
     let isFromUser: Bool
     let isUser: Bool // Alias for isFromUser for compatibility
     let timestamp: Date
+    let hasEmergencyAlert: Bool
     
     init(content: String, isFromUser: Bool, timestamp: Date = Date(), hasEmergencyAlert: Bool = false) {
         self.content = content
@@ -318,6 +319,7 @@ struct AIMessage: Identifiable {
         self.isFromUser = isUser
         self.isUser = isUser
         self.timestamp = Date()
+        self.hasEmergencyAlert = false
     }
 }
 

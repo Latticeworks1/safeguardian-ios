@@ -460,34 +460,6 @@ struct SignUpView: View {
 
 // MARK: - Supporting Views
 
-struct SafetyFeatureRow: View {
-    let icon: String
-    let title: String
-    let description: String
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(.blue)
-                .frame(width: 24)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
-                
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-    }
-}
 
 struct BiometricSignInButton: View {
     @ObservedObject var authService: AuthenticationService
@@ -543,7 +515,7 @@ struct PasswordStrengthIndicator: View {
                     Rectangle()
                         .frame(height: 4)
                         .foregroundStyle(
-                            index < strength.rawValue ? strength.color : .quaternary
+                            index < strength.rawValue ? strength.color : .gray.opacity(0.3)
                         )
                 }
             }
