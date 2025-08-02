@@ -567,7 +567,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		BAB869902E3BEE8700C06B84 /* XCRemoteSwiftPackageReference "bitchat" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = ../safeguardian/bitchat;
+			repositoryURL = ./bitchat;
 			requirement = {
 				branch = main;
 				kind = branch;

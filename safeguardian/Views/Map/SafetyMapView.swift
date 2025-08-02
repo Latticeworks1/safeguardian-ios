@@ -355,6 +355,173 @@ struct EmergencyServiceDetailView: View {
     }
 }
 
+// MARK: - Minimal Map View
+struct MinimalMapView: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+    )
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Minimal header
+            MinimalTopHeader(title: "Map", meshManager: meshManager)
+            
+            // Simple map
+            Map(coordinateRegion: $region, showsUserLocation: true)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - Minimal Profile View  
+struct MinimalProfileView: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    @State private var userProfile = UserProfile.sample
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Minimal header
+            MinimalTopHeader(title: "Profile", meshManager: meshManager)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    // Profile info
+                    MinimalProfileCard(profile: userProfile)
+                    
+                    // Connection status
+                    MinimalConnectionCard(meshManager: meshManager)
+                    
+                    // Settings
+                    MinimalSettingsSection()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+            }
+        }
+        .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - Minimal Profile Card
+struct MinimalProfileCard: View {
+    let profile: UserProfile
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(.blue.opacity(0.1))
+                .frame(width: 50, height: 50)
+                .overlay {
+                    Text(String(profile.nickname.prefix(1)))
+                        .font(.system(size: 20, weight: .medium, design: .rounded))
+                        .foregroundStyle(.blue)
+                }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(profile.nickname)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+                
+                Text("SafeGuardian User")
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(16)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// MARK: - Minimal Connection Card
+struct MinimalConnectionCard: View {
+    @ObservedObject var meshManager: SafeGuardianMeshManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Connection")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
+            
+            HStack {
+                Circle()
+                    .fill(meshManager.isConnected ? .blue : .gray.opacity(0.5))
+                    .frame(width: 8, height: 8)
+                
+                Text(meshManager.isConnected ? "Connected" : "Offline")
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .foregroundStyle(.primary)
+                
+                Spacer()
+                
+                if meshManager.isConnected {
+                    Text("\(meshManager.connectedPeers.count) peers")
+                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(16)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// MARK: - Minimal Settings Section
+struct MinimalSettingsSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Settings")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
+            
+            VStack(spacing: 0) {
+                MinimalSettingRow(title: "Notifications", icon: "bell")
+                MinimalSettingRow(title: "Privacy", icon: "lock")
+                MinimalSettingRow(title: "About", icon: "info.circle")
+            }
+        }
+        .padding(16)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// MARK: - Minimal Setting Row
+struct MinimalSettingRow: View {
+    let title: String
+    let icon: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+            
+            Text(title)
+                .font(.system(size: 15, weight: .regular, design: .rounded))
+                .foregroundStyle(.primary)
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Handle setting tap
+        }
+    }
+}
+
 // MARK: - Service Detail Row
 struct ServiceDetailRow: View {
     let icon: String

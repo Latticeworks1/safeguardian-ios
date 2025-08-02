@@ -79,19 +79,38 @@ xcodebuild -project safeguardian.xcodeproj -scheme safeguardian -configuration R
 
 ## Architecture
 
-### BitChat Integration Architecture
-SafeGuardian uses a **clean wrapper architecture** that integrates BitChat's proven P2P mesh networking as a backend service:
+### BitChat Integration Architecture - "Modular Silo" Pattern
+SafeGuardian uses a **modular "silo" pattern** where BitChat is integrated as a communication protocol layer:
 
-**Integration Layer:**
-- **SafeGuardianMeshManager**: Clean wrapper implementing BitchatDelegate protocol
-- **BitChat Backend**: Complete P2P mesh networking (transparent to users)
-- **SafeGuardian UI**: Professional safety-focused interface with SafeGuardian branding
+**Protocol Abstraction Layer:**
+```swift
+// SafeGuardian's communication protocol abstraction
+protocol CommunicationProtocol {
+    func send(_ data: Data, to: String) async throws
+    func receive() async throws -> Data
+    func getConnectedPeers() -> [String]
+}
 
-**Key Benefits:**
-- BitChat handles all P2P networking, encryption (Noise Protocol), and peer discovery
-- SafeGuardian presents as a polished safety app with emergency-first design
-- No code rewriting - BitChat proven networking + SafeGuardian safety UX
-- Offline capability via mesh network for emergency communications
+// BitChat implements this protocol for mesh networking
+class BitChatProtocol: CommunicationProtocol {
+    private let meshService: BluetoothMeshService
+    private let encryption: NoiseEncryptionService
+    // BitChat's proven P2P implementation
+}
+```
+
+**Integration Points:**
+1. **SafeGuardianMeshManager**: Clean wrapper implementing `BitchatDelegate`
+2. **Protocol Bridge**: Converts BitChat types to SafeGuardian UI types
+3. **Dependency Injection**: BitChat injected as communication layer
+4. **Service Composition**: SafeGuardian features layer on BitChat networking
+
+**Architecture Benefits:**
+- **Clean Separation**: BitChat is pure networking, SafeGuardian is pure UI/safety
+- **Protocol Abstraction**: Could swap BitChat for other P2P protocols
+- **Type Safety**: SafeGuardian types separate from BitChat types
+- **Testability**: Mock BitChat for testing SafeGuardian features
+- **Modularity**: BitChat updates don't affect SafeGuardian UI code
 
 ### Modular Architecture
 The app uses a well-organized modular architecture with feature-based separation:
@@ -145,28 +164,38 @@ safeguardian/
     └── SharedComponents.swift         # Reusable UI components
 ```
 
-### BitChat P2P Mesh Network Integration
-The **SafeGuardianMeshManager** provides seamless integration:
+### BitChat P2P Mesh Network Integration - Confirmed Implementation
+The **SafeGuardianMeshManager** implements the modular silo pattern:
 
-**Core Integration:**
+**Actual Implementation (safeguardian/Services/SafeGuardianMeshManager.swift:1-210):**
 ```swift
 class SafeGuardianMeshManager: ObservableObject, BitchatDelegate {
+    // MARK: - Published Properties for SafeGuardian UI
     @Published var isConnected: Bool = false
     @Published var connectedPeers: [String] = []
     @Published var messages: [SafeGuardianMessage] = []
     
+    // MARK: - BitChat Backend (core networking only)
     private let meshService = BluetoothMeshService()
     
-    // BitChat handles all networking, encryption, peer discovery
-    // SafeGuardian gets clean UI-ready data via delegate methods
+    // BitChat delegate implementation - converts to SafeGuardian types
+    func didReceiveMessage(_ message: BitchatMessage) {
+        let safeGuardianMessage = SafeGuardianMessage(/* type conversion */)
+        DispatchQueue.main.async { self.messages.append(safeGuardianMessage) }
+    }
 }
 ```
 
-**Safety-Specific Features:**
-- **Emergency Broadcasting**: `sendEmergencyBroadcast()` for urgent alerts
-- **Network Quality**: Real-time mesh network health indicators
-- **Offline Communication**: P2P messaging without internet via Bluetooth mesh
-- **End-to-End Encryption**: Automatic via BitChat's Noise Protocol implementation
+**Type Conversion Architecture:**
+- **BitchatMessage** → **SafeGuardianMessage**: UI-optimized message structure
+- **DeliveryStatus** → **SafeGuardianDeliveryStatus**: SafeGuardian-specific status handling
+- **Peer Management**: BitChat peer events converted to SafeGuardian UI updates
+
+**Safety-Enhanced Features:**
+- **Emergency Broadcasting**: `sendEmergencyBroadcast()` wraps BitChat messaging
+- **Network Quality Assessment**: `getNetworkQuality()` based on peer count
+- **Emergency Detection**: `isEmergencyMessage()` for safety keyword detection
+- **Automatic Encryption**: BitChat's Noise Protocol transparent to SafeGuardian
 
 ### AI Safety System Architecture
 The **SafetyAIGuide** class implements a deterministic rule engine:
