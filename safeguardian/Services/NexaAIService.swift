@@ -4,7 +4,7 @@ import Network
 import AVFoundation
 import Speech
 import Vision
-// import SwiftLlama // Real llama.cpp integration for SafeGuardian - TODO: Add as Xcode dependency
+import SwiftLlama // Real llama.cpp integration for SafeGuardian
 import Combine
 
 // MARK: - Real SwiftLlama Implementation for SafeGuardian
@@ -58,7 +58,7 @@ struct SafetyMessage {
 class SafeGuardianLLM {
     private let modelPath: String
     private var isLoaded = false
-    private var swiftLlama: Any? // Will be SwiftLlama once dependency is added
+    private var swiftLlama: SwiftLlama? // Real SwiftLlama instance
     
     init(modelPath: String) {
         self.modelPath = modelPath
@@ -75,10 +75,8 @@ class SafeGuardianLLM {
         let fileSize = try FileManager.default.attributesOfItem(atPath: modelPath)[.size] as? Int64 ?? 0
         print("📊 Model file size: \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))")
         
-        // TODO: Initialize SwiftLlama with the model
-        // self.swiftLlama = try SwiftLlama(modelPath: modelPath)
-        // Temporary simulation until dependency is added
-        self.swiftLlama = "ModelLoaded"
+        // Initialize real SwiftLlama with the model
+        self.swiftLlama = try SwiftLlama(modelPath: modelPath)
         
         isLoaded = true
         print("✅ SwiftLlama Model loaded and ready for SafeGuardian")
@@ -101,10 +99,9 @@ class SafeGuardianLLM {
             throw NSError(domain: "SafeGuardianLLM", code: -2, userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
         }
         
-        // TODO: Real SwiftLlama generation with safety focus
-        // return try await swiftLlama.start(for: prompt)
-        // Temporary simulation
-        return simulateIntelligentResponse(for: prompt)
+        // Real SwiftLlama generation with safety focus
+        let safetyPrompt = createSafetyPrompt(userInput: prompt)
+        return try await swiftLlama.start(for: safetyPrompt)
     }
     
     // Streaming generation for real-time responses - REAL SwiftLlama STREAMING
@@ -113,16 +110,19 @@ class SafeGuardianLLM {
             throw NSError(domain: "SafeGuardianLLM", code: -2, userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
         }
         
-        // TODO: Real SwiftLlama streaming using AsyncSequence
-        // Temporary simulation until SwiftLlama is integrated
+        // Real SwiftLlama streaming using AsyncSequence
+        let safetyPrompt = createSafetyPrompt(userInput: prompt)
+        
         return AsyncStream { continuation in
             Task {
-                let response = self.simulateIntelligentResponse(for: prompt)
-                for char in response {
-                    continuation.yield(String(char))
-                    try await Task.sleep(nanoseconds: 20_000_000) // 20ms delay
+                do {
+                    for try await token in try await swiftLlama.start(for: safetyPrompt) {
+                        continuation.yield(token)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish()
                 }
-                continuation.finish()
             }
         }
     }
