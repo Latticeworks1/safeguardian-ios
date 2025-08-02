@@ -73,7 +73,7 @@ struct MinimalCommunitySection: View {
         .onAppear {
             loadMeshNetworkPosts()
         }
-        .onChange(of: meshManager.messages) { _ in
+        .onChange(of: meshManager.messages) { oldValue, newValue in
             loadMeshNetworkPosts()
         }
         .sheet(isPresented: $showingEmergencyBroadcast) {
