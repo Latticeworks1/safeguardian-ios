@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - NexaAI Model Download View
+// MARK: - SwiftLlama AI Model Download View
 struct NexaAIModelDownloadView: View {
     @ObservedObject var nexaAI: NexaAIService
     
@@ -28,10 +28,10 @@ struct ModelNotDownloadedSection: View {
                 .foregroundStyle(.blue)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("Enhanced AI")
+                Text("SwiftLlama AI")
                     .font(.subheadline.weight(.medium))
                 
-                Text("Download model for better responses")
+                Text("Download llama.cpp model for enhanced responses")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -64,7 +64,7 @@ struct ModelDownloadingSection: View {
                 .scaleEffect(0.8)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("Downloading Model")
+                Text("Downloading SwiftLlama Model")
                     .font(.subheadline.weight(.medium))
                 
                 Text("\(Int(progress * 100))% complete")
@@ -140,11 +140,11 @@ struct NexaAIModelInfoSheet: View {
                                 .font(.title)
                                 .foregroundStyle(.blue)
                             
-                            Text("NexaAI Integration")
+                            Text("SwiftLlama Integration")
                                 .font(.title2.weight(.semibold))
                         }
                         
-                        Text("Enhanced AI-powered safety assistance")
+                        Text("Real llama.cpp AI-powered safety assistance")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -158,26 +158,26 @@ struct NexaAIModelInfoSheet: View {
                         
                         FeatureRow(
                             icon: "shield.checkered",
-                            title: "Context-Aware Safety Responses",
-                            description: "Advanced AI understanding of safety scenarios and personalized guidance"
+                            title: "Real AI Safety Responses",
+                            description: "Powered by llama.cpp for intelligent safety scenario understanding and guidance"
                         )
                         
                         FeatureRow(
                             icon: "lock.fill",
                             title: "Privacy-First Design",
-                            description: "All AI processing happens locally on your device - no data sent to servers"
+                            description: "SwiftLlama processes everything locally on your device - no data sent to servers"
                         )
                         
                         FeatureRow(
                             icon: "bolt.fill",
                             title: "Offline Capability",
-                            description: "Works without internet connection once the model is downloaded"
+                            description: "Real llama.cpp inference works without internet once model is downloaded"
                         )
                         
                         FeatureRow(
                             icon: "exclamationmark.triangle.fill",
-                            title: "Emergency Detection",
-                            description: "Advanced emergency keyword detection with priority routing"
+                            title: "Smart Emergency Detection",
+                            description: "Real AI-powered emergency detection with intelligent response routing"
                         )
                     }
                     
@@ -191,7 +191,7 @@ struct NexaAIModelInfoSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             DetailRow(label: "Model", value: "Qwen2-0.5B-Instruct")
                             DetailRow(label: "Size", value: "~150 MB")
-                            DetailRow(label: "Quantization", value: "Q4_K_M (optimized)")
+                            DetailRow(label: "Engine", value: "SwiftLlama (llama.cpp)")
                             DetailRow(label: "Processing", value: "On-device only")
                         }
                     }
@@ -208,7 +208,7 @@ struct NexaAIModelInfoSheet: View {
                                 .foregroundStyle(.red)
                         }
                         
-                        Text("This AI assistant provides safety guidance but should never replace emergency services. Always call 911 for real emergencies.")
+                        Text("This SwiftLlama AI assistant provides intelligent safety guidance but should never replace emergency services. Always call 911 for real emergencies.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

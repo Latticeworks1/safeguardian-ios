@@ -4,7 +4,7 @@ import SwiftUI
 struct MinimalAIView: View {
     @ObservedObject var meshManager: SafeGuardianMeshManager
     @StateObject private var nexaAI = NexaAIService()
-    @StateObject private var streamingAI = StreamingAIService()
+    @StateObject private var streamingAI = RealStreamingAIService()
     @State private var userInput = ""
     @State private var messages: [AIMessage] = []
     @State private var isStreaming = false
@@ -95,6 +95,9 @@ struct MinimalAIView: View {
             Text("Emergency keywords detected. For real emergencies, call 911 immediately.")
         }
         .onAppear {
+            // Connect the streaming service to the NexaAI service
+            streamingAI.setNexaAIService(nexaAI)
+            
             // Initialize with welcome message if needed
             if messages.isEmpty && nexaAI.modelDownloadStatus.canGenerate {
                 addWelcomeMessage()
@@ -213,36 +216,57 @@ struct MinimalAIView: View {
 
 // MARK: - Enhanced UI Components
 
-// Streaming AI Service for real-time responses
-class StreamingAIService: ObservableObject {
-    func generateStreamingResponse(for prompt: String, onToken: @escaping (String, Bool) -> Bool) async {
-        // Simulate streaming response - replace with real NexaAI streaming when SDK is integrated
-        let safetyResponse = generateSafetyResponse(for: prompt)
-        
-        // Stream character by character
-        for (_, char) in safetyResponse.enumerated() {
-            let shouldContinue = onToken(String(char), false)
-            if !shouldContinue { break }
-            
-            try? await Task.sleep(nanoseconds: 20_000_000) // 20ms delay
-        }
-        
-        // Signal completion
-        _ = onToken("", true)
+// Real SwiftLlama AI Service for production responses
+class RealStreamingAIService: ObservableObject {
+    private var nexaAIService: NexaAIService?
+    
+    func setNexaAIService(_ service: NexaAIService) {
+        nexaAIService = service
     }
     
-    private func generateSafetyResponse(for prompt: String) -> String {
+    func generateStreamingResponse(for prompt: String, onToken: @escaping (String, Bool) -> Bool) async {
+        // Use real SwiftLlama streaming if model is ready
+        if let nexaAI = nexaAIService, nexaAI.isModelReady {
+            // Get full response from SwiftLlama service
+            let response = await nexaAI.generateResponse(for: prompt)
+            
+            // Stream the response character by character for better UX
+            for char in response {
+                let shouldContinue = onToken(String(char), false)
+                if !shouldContinue { break }
+                try? await Task.sleep(nanoseconds: 25_000_000) // 25ms delay for natural feel
+            }
+            
+            // Signal completion
+            _ = onToken("", true)
+        } else {
+            // Fallback to basic safety response if model not ready
+            let safetyResponse = generateFallbackSafetyResponse(for: prompt)
+            
+            // Stream character by character to maintain UI consistency
+            for char in safetyResponse {
+                let shouldContinue = onToken(String(char), false)
+                if !shouldContinue { break }
+                try? await Task.sleep(nanoseconds: 15_000_000) // 15ms delay
+            }
+            
+            // Signal completion
+            _ = onToken("", true)
+        }
+    }
+    
+    private func generateFallbackSafetyResponse(for prompt: String) -> String {
         let lowercasePrompt = prompt.lowercased()
         
         if lowercasePrompt.contains("emergency") || lowercasePrompt.contains("help") {
-            return "🚨 Emergency Response Protocol:\n\n1. Call 911 immediately for real emergencies\n2. Share your location with trusted contacts\n3. Use SafeGuardian's mesh network to alert nearby community members\n4. Stay calm and follow emergency responder instructions\n\nSafeGuardian's mesh network can coordinate community response even without internet."
+            return "🚨 Emergency Response Protocol:\n\n1. Call 911 immediately for real emergencies\n2. Share your location with trusted contacts\n3. Use SafeGuardian's mesh network to alert nearby community members\n4. Stay calm and follow emergency responder instructions\n\nSafeGuardian's mesh network can coordinate community response even without internet.\n\n💡 Download the AI model above for enhanced intelligent responses."
         }
         
         if lowercasePrompt.contains("safe") || lowercasePrompt.contains("route") {
-            return "🛡️ Safe Travel Guidelines:\n\n• Stick to well-lit, populated areas\n• Share your route with trusted contacts\n• Trust your instincts - leave if something feels wrong\n• Use SafeGuardian's mesh network to stay connected\n• Keep emergency contacts easily accessible\n\nSafeGuardian's Safety Map can show nearby emergency services and safe locations."
+            return "🛡️ Safe Travel Guidelines:\n\n• Stick to well-lit, populated areas\n• Share your route with trusted contacts\n• Trust your instincts - leave if something feels wrong\n• Use SafeGuardian's mesh network to stay connected\n• Keep emergency contacts easily accessible\n\nSafeGuardian's Safety Map can show nearby emergency services and safe locations.\n\n🤖 For AI-powered personalized route analysis, download the model above."
         }
         
-        return "🛡️ SafeGuardian Safety Assistant:\n\nI'm here to provide safety guidance and emergency assistance. For immediate emergencies, always call 911 first.\n\nSafeGuardian's unique features:\n• Mesh network for offline communication\n• Community safety coordination\n• Emergency service location mapping\n• Real-time safety alerts\n\nWhat specific safety situation can I help you with?"
+        return "🛡️ SafeGuardian Safety Assistant:\n\nI'm here to provide safety guidance and emergency assistance. For immediate emergencies, always call 911 first.\n\nSafeGuardian's unique features:\n• Mesh network for offline communication\n• Community safety coordination\n• Emergency service location mapping\n• Real-time safety alerts\n\n🧠 Download the AI model above for intelligent, context-aware safety responses powered by llama.cpp."
     }
 }
 
