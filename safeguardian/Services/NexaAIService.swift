@@ -268,7 +268,8 @@ class RealNexaAI: NexaAIModelProtocol {
 }
 
 // MARK: - Enhanced Multimodal NexaAI Service
-class NexaAIService: ObservableObject {
+@MainActor
+class NexaAIService: ObservableObject, Sendable {
     // Audio/Voice capabilities
     @Published var isRecording = false
     @Published var audioLevel: Float = 0.0
@@ -297,6 +298,7 @@ class NexaAIService: ObservableObject {
     private var isModelReady = false
     private var downloadTask: URLSessionDownloadTask?
     private var nexaAI: NexaAIModelProtocol = RealNexaAI()
+    private var progressObserver: NSKeyValueObservation?
     
     // Model URLs and configuration
     private let modelName = "Qwen2-0.5B-Instruct-Q4_K_M.gguf"
@@ -306,6 +308,26 @@ class NexaAIService: ObservableObject {
     init() {
         checkSDKAvailability()
         setupMultimodalCapabilities()
+        setupNotificationObservers()
+    }
+    
+    private func setupNotificationObservers() {
+        NotificationCenter.default.addObserver(
+            forName: .downloadProgressUpdated,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let progress = notification.userInfo?["progress"] as? Double {
+                Task { @MainActor in
+                    self?.downloadProgress = progress
+                }
+            }
+        }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        progressObserver?.invalidate()
     }
     
     // MARK: - SDK Availability
@@ -325,34 +347,34 @@ class NexaAIService: ObservableObject {
     private func requestPermissions() {
         // Microphone permission - using modern AVAudioApplication API
         if #available(iOS 17.0, *) {
-            AVAudioApplication.requestRecordPermission { [weak self] granted in
-                DispatchQueue.main.async {
-                    self?.microphonePermissionGranted = granted
-                    self?.speechRecognitionEnabled = granted
+            AVAudioApplication.requestRecordPermission { granted in
+                Task { @MainActor in
+                    self.microphonePermissionGranted = granted
+                    self.speechRecognitionEnabled = granted
                 }
             }
         } else {
             // Fallback for older iOS versions
-            audioSession.requestRecordPermission { [weak self] granted in
-                DispatchQueue.main.async {
-                    self?.microphonePermissionGranted = granted
-                    self?.speechRecognitionEnabled = granted
+            audioSession.requestRecordPermission { granted in
+                Task { @MainActor in
+                    self.microphonePermissionGranted = granted
+                    self.speechRecognitionEnabled = granted
                 }
             }
         }
         
         // Speech recognition permission
-        SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            DispatchQueue.main.async {
-                self?.speechRecognitionEnabled = status == .authorized && self?.microphonePermissionGranted == true
+        SFSpeechRecognizer.requestAuthorization { status in
+            Task { @MainActor in
+                self.speechRecognitionEnabled = status == .authorized && self.microphonePermissionGranted == true
             }
         }
         
         // Camera permission (for future image analysis)
-        AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-            DispatchQueue.main.async {
-                self?.cameraPermissionGranted = granted
-                self?.imageAnalysisEnabled = granted
+        AVCaptureDevice.requestAccess(for: .video) { granted in
+            Task { @MainActor in
+                self.cameraPermissionGranted = granted
+                self.imageAnalysisEnabled = granted
             }
         }
     }
@@ -444,11 +466,25 @@ class NexaAIService: ObservableObject {
                 }
             }
             
-            // Track download progress
-            _ = downloadTask?.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
-                Task { @MainActor in
-                    self?.downloadProgress = progress.fractionCompleted
+            // Track download progress with proper concurrency handling
+            if let downloadTask = downloadTask {
+                let progressObserver = downloadTask.progress.observe(\.fractionCompleted) { progress, _ in
+                    Task { @MainActor in
+                        // Find the NexaAIService instance and update progress
+                        // This avoids capturing self in the Sendable closure
+                        await MainActor.run {
+                            // We'll use a notification-based approach instead
+                            NotificationCenter.default.post(
+                                name: .downloadProgressUpdated,
+                                object: nil,
+                                userInfo: ["progress": progress.fractionCompleted]
+                            )
+                        }
+                    }
                 }
+                
+                // Store observer to prevent deallocation
+                self.progressObserver = progressObserver
             }
             
             downloadTask?.resume()
@@ -540,13 +576,15 @@ class NexaAIService: ObservableObject {
             let inputNode = audioEngine.inputNode
             let recordingFormat = inputNode.outputFormat(forBus: 0)
             
-            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
                 recognitionRequest.append(buffer)
                 
                 // Update audio level for UI
-                let level = self.audioLevelFromBuffer(buffer)
-                DispatchQueue.main.async {
-                    self.audioLevel = level
+                if let self = self {
+                    let level = self.audioLevelFromBuffer(buffer)
+                    Task { @MainActor in
+                        self.audioLevel = level
+                    }
                 }
             }
             
@@ -708,7 +746,7 @@ class NexaAIService: ObservableObject {
             }
             
             // Trigger emergency protocols in the app
-            NotificationCenter.default.post(name: .emergencyDetected, object: command)
+            NotificationCenter.default.post(name: .nexaAIEmergencyDetected, object: command)
         }
     }
     
@@ -861,4 +899,10 @@ enum ModelDownloadStatus {
         if case .ready = self { return true }
         return false
     }
+}
+
+// MARK: - Notification Extensions
+extension Notification.Name {
+    static let nexaAIEmergencyDetected = Notification.Name("nexaAIEmergencyDetected")
+    static let downloadProgressUpdated = Notification.Name("downloadProgressUpdated")
 }
