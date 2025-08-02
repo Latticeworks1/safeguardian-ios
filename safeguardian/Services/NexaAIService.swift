@@ -323,11 +323,21 @@ class NexaAIService: ObservableObject {
     }
     
     private func requestPermissions() {
-        // Microphone permission
-        audioSession.requestRecordPermission { [weak self] granted in
-            DispatchQueue.main.async {
-                self?.microphonePermissionGranted = granted
-                self?.speechRecognitionEnabled = granted
+        // Microphone permission - using modern AVAudioApplication API
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.microphonePermissionGranted = granted
+                    self?.speechRecognitionEnabled = granted
+                }
+            }
+        } else {
+            // Fallback for older iOS versions
+            audioSession.requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.microphonePermissionGranted = granted
+                    self?.speechRecognitionEnabled = granted
+                }
             }
         }
         

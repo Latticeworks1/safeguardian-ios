@@ -47,11 +47,21 @@ class SafeGuardianAIService: ObservableObject {
     }
     
     private func requestPermissions() {
-        // Microphone permission for voice input
-        audioSession.requestRecordPermission { [weak self] granted in
-            DispatchQueue.main.async {
-                self?.microphonePermissionGranted = granted
-                self?.speechRecognitionEnabled = granted
+        // Microphone permission for voice input - using modern AVAudioApplication API
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.microphonePermissionGranted = granted
+                    self?.speechRecognitionEnabled = granted
+                }
+            }
+        } else {
+            // Fallback for older iOS versions
+            audioSession.requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.microphonePermissionGranted = granted
+                    self?.speechRecognitionEnabled = granted
+                }
             }
         }
         
