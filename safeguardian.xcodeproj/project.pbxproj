@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BA1234562E3BEE8700C06B87 /* SwiftLlama in Frameworks */ = {isa = PBXBuildFile; productRef = BA1234552E3BEE8700C06B88 /* SwiftLlama */; };
 		BAB869922E3BEE8700C06B86 /* bitchat in Frameworks */ = {isa = PBXBuildFile; productRef = BAB869912E3BEE8700C06B85 /* bitchat */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BAB869922E3BEE8700C06B86 /* bitchat in Frameworks */,
+				BA1234562E3BEE8700C06B87 /* SwiftLlama in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -203,6 +205,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BAB869902E3BEE8700C06B84 /* XCRemoteSwiftPackageReference "bitchat" */,
+				BA1234542E3BEE8700C06B89 /* XCRemoteSwiftPackageReference "SwiftLlama" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BA4114E12E31E23400F8145D /* Products */;
@@ -414,6 +417,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSCameraUsageDescription = "SafeGuardian uses camera access for AI-powered image analysis to assess safety situations and provide enhanced security guidance.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "SafeGuardian uses microphone access for voice commands and emergency audio detection to provide hands-free safety assistance.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SafeGuardian uses location services to show nearby emergency services, coordinate with community members, and provide location-based safety guidance.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "SafeGuardian uses location services to show nearby emergency services, coordinate with community members, and provide location-based safety guidance.";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "SafeGuardian uses Bluetooth for mesh network communication, enabling offline coordination with nearby community members during emergencies.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "SafeGuardian uses Bluetooth for mesh network communication, enabling offline coordination with nearby community members during emergencies.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -442,6 +451,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSCameraUsageDescription = "SafeGuardian uses camera access for AI-powered image analysis to assess safety situations and provide enhanced security guidance.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "SafeGuardian uses microphone access for voice commands and emergency audio detection to provide hands-free safety assistance.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SafeGuardian uses location services to show nearby emergency services, coordinate with community members, and provide location-based safety guidance.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "SafeGuardian uses location services to show nearby emergency services, coordinate with community members, and provide location-based safety guidance.";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "SafeGuardian uses Bluetooth for mesh network communication, enabling offline coordination with nearby community members during emergencies.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "SafeGuardian uses Bluetooth for mesh network communication, enabling offline coordination with nearby community members during emergencies.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -565,6 +580,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		BA1234542E3BEE8700C06B89 /* XCRemoteSwiftPackageReference "SwiftLlama" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ShenghaiWang/SwiftLlama.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.0;
+			};
+		};
 		BAB869902E3BEE8700C06B84 /* XCRemoteSwiftPackageReference "bitchat" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = ./bitchat;
@@ -576,6 +599,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BA1234552E3BEE8700C06B88 /* SwiftLlama */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA1234542E3BEE8700C06B89 /* XCRemoteSwiftPackageReference "SwiftLlama" */;
+			productName = SwiftLlama;
+		};
 		BAB869912E3BEE8700C06B85 /* bitchat */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BAB869902E3BEE8700C06B84 /* XCRemoteSwiftPackageReference "bitchat" */;
