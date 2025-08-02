@@ -120,6 +120,7 @@
 			name = safeguardian;
 			packageProductDependencies = (
 				BAB869912E3BEE8700C06B85 /* bitchat */,
+				BA1234552E3BEE8700C06B88 /* SwiftLlama */,
 			);
 			productName = safeguardian;
 			productReference = BA4114E02E31E23400F8145D /* safeguardian.app */;
