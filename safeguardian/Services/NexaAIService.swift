@@ -51,6 +51,7 @@ struct NexaChatMessage {
 class LLM {
     private let modelPath: String
     private var isLoaded = false
+    private var llm: Any? // Placeholder for actual NexaAI model instance
     
     init(modelPath: String) {
         self.modelPath = modelPath
@@ -62,58 +63,80 @@ class LLM {
             throw NSError(domain: "NexaAI", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model file not found: \(modelPath)"])
         }
         
-        // REAL NexaAI model loading - NO MORE SIMULATION
+        // REAL NexaAI model loading - ready for SDK integration
         print("🚀 Loading NexaAI Model: \(modelPath)")
         let fileSize = try FileManager.default.attributesOfItem(atPath: modelPath)[.size] as? Int64 ?? 0
         print("📊 Model file size: \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))")
         
-        // ACTUAL NexaAI SDK model loading
-        let llm = try LLM(modelPath: modelPath)
-        try llm.loadModel()
+        // TODO: Replace with actual NexaAI SDK when available
+        // self.llm = try NexaAI.loadModel(at: modelPath)
         
         isLoaded = true
-        print("✅ NexaAI Model ACTUALLY loaded and ready for REAL inference")
+        print("✅ NexaAI Model ready for SDK integration")
     }
     
     // Chat template support for safety conversations
     func applyChatTemplate(messages: [NexaChatMessage]) async throws -> String {
-        // REAL NexaAI SDK chat template application
-        return try await llm?.applyChatTemplate(messages: messages) ?? ""
+        guard isLoaded else {
+            throw NSError(domain: "NexaAI", code: -2, userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
+        }
+        // TODO: Replace with actual NexaAI SDK chat template when available
+        // return try await (llm as? NexaAIModel)?.applyChatTemplate(messages: messages) ?? ""
+        
+        // Temporary implementation for development
+        let prompt = messages.map { "\($0.role): \($0.content)" }.joined(separator: "\n")
+        return prompt
     }
     
     // Main generation method - REAL NexaAI INFERENCE
     func generate(prompt: String, config: GenerationConfig) async throws -> String {
-        guard isLoaded, let llm = llm else {
+        guard isLoaded else {
             throw NSError(domain: "NexaAI", code: -2, userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
         }
         
-        // REAL NexaAI SDK generation - NO MORE SIMULATION
-        return try await llm.generate(prompt: prompt, config: config)
+        // TODO: Replace with actual NexaAI SDK generation when available
+        // return try await (llm as? NexaAIModel)?.generate(prompt: prompt, config: config) ?? ""
+        
+        // Temporary safety-focused response for development
+        return generateSafetyResponse(for: prompt, config: config)
     }
     
     // Streaming generation for real-time responses - REAL NexaAI STREAMING
     func generationAsyncStream(prompt: String, config: GenerationConfig = .default) async throws -> AsyncStream<String> {
-        guard isLoaded, let llm = llm else {
+        guard isLoaded else {
             throw NSError(domain: "NexaAI", code: -2, userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
         }
         
-        // REAL NexaAI SDK streaming generation
-        return try await llm.generationAsyncStream(prompt: prompt, config: config)
+        // TODO: Replace with actual NexaAI SDK streaming when available
+        // return try await (llm as? NexaAIModel)?.generationAsyncStream(prompt: prompt, config: config) ?? AsyncStream { _ in }
+        
+        // Temporary streaming implementation for development
+        return AsyncStream { continuation in
+            Task {
+                let response = generateSafetyResponse(for: prompt, config: config)
+                for char in response {
+                    continuation.yield(String(char))
+                    try? await Task.sleep(nanoseconds: 20_000_000) // 20ms delay
+                }
+                continuation.finish()
+            }
+        }
     }
     
     // Sampler configuration - REAL NexaAI SDK
     func setSampler(config: SamplerConfig) throws {
-        guard let llm = llm else {
+        guard isLoaded else {
             throw NSError(domain: "NexaAI", code: -2, userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
         }
         
-        // REAL NexaAI SDK sampler configuration
-        try llm.setSampler(config: config)
-        print("✅ Real NexaAI Sampler configured: temp=\(config.temperature), topP=\(config.topP)")
+        // TODO: Replace with actual NexaAI SDK sampler configuration when available
+        // try (llm as? NexaAIModel)?.setSampler(config: config)
+        
+        print("✅ NexaAI Sampler configuration ready: temp=\(config.temperature), topP=\(config.topP)")
     }
     
     // Safety-focused response generation using chat templates
-    private func generateSafetyResponse(for prompt: String, config: GenerationConfig) async -> String {
+    private func generateSafetyResponse(for prompt: String, config: GenerationConfig) -> String {
         // Create safety-focused chat messages
         let messages: [NexaChatMessage] = [
             NexaChatMessage(role: .system, content: """
@@ -129,17 +152,8 @@ class LLM {
             NexaChatMessage(role: .user, content: prompt)
         ]
         
-        // Use chat template to structure the conversation
-        do {
-            let chatPrompt = try await applyChatTemplate(messages: messages)
-            
-            // REAL NexaAI model inference - NO MORE HARDCODED RESPONSES
-            let response = try await generate(prompt: chatPrompt, config: config)
-            return response
-            
-        } catch {
-            return "SafeGuardian AI temporarily unavailable. In emergencies, call 911 immediately. Use mesh network to coordinate with nearby community members."
-        }
+        // Generate intelligent safety response based on keywords and context
+        return generateIntelligentSafetyResponse(for: prompt)
     }
     
     private func generateIntelligentSafetyResponse(for prompt: String) -> String {

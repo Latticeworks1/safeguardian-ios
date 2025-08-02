@@ -10,14 +10,21 @@ struct SafetyMapView: View {
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), // San Francisco
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
+    @State private var cameraPosition = MapCameraPosition.region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )
+    )
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Main Map
-                ZStack {
-                    Map(coordinateRegion: $region, showsUserLocation: true, annotationItems: emergencyServiceAnnotations) { annotation in
-                        MapAnnotation(coordinate: annotation.coordinate) {
+                // Main Map with Modern MapContentBuilder
+                Map(position: $cameraPosition) {
+                    // Emergency Service Annotations
+                    ForEach(emergencyServiceAnnotations) { annotation in
+                        Annotation(annotation.service.name, coordinate: annotation.coordinate) {
                             EmergencyServiceAnnotationView(service: annotation.service)
                                 .onTapGesture {
                                     selectedEmergencyService = annotation.service
@@ -25,13 +32,17 @@ struct SafetyMapView: View {
                         }
                     }
                     
-                    Map(coordinateRegion: $region, showsUserLocation: false, annotationItems: communityLocationAnnotations) { annotation in
-                        MapAnnotation(coordinate: annotation.coordinate) {
+                    // Community Location Annotations  
+                    ForEach(communityLocationAnnotations) { annotation in
+                        Annotation(annotation.location.name, coordinate: annotation.coordinate) {
                             CommunityAnnotationView(location: annotation.location)
                         }
                     }
-                    .allowsHitTesting(false) // Allow touches to pass through to emergency services
+                    
+                    // User Location (built-in)
+                    UserAnnotation()
                 }
+                .mapControlVisibility(.hidden)
                 .ignoresSafeArea()
                 .onAppear {
                     updateRegionForUserLocation()
@@ -39,6 +50,7 @@ struct SafetyMapView: View {
                 .onChange(of: locationManager.userLocation) { _, location in
                     if let location = location {
                         region.center = location.coordinate
+                        cameraPosition = .region(region)
                     }
                 }
                 
@@ -64,10 +76,12 @@ struct SafetyMapView: View {
                             if let nearestService = locationManager.findNearestEmergencyService(of: serviceType) {
                                 selectedEmergencyService = nearestService
                                 // Center map on service
-                                region.center = CLLocationCoordinate2D(
+                                let serviceCoordinate = CLLocationCoordinate2D(
                                     latitude: nearestService.latitude,
                                     longitude: nearestService.longitude
                                 )
+                                region.center = serviceCoordinate
+                                cameraPosition = .region(region)
                             }
                         }
                     )
@@ -128,6 +142,7 @@ struct SafetyMapView: View {
     private func updateRegionForUserLocation() {
         if let userLocation = locationManager.userLocation {
             region.center = userLocation.coordinate
+            cameraPosition = .region(region)
         }
     }
     
@@ -135,6 +150,7 @@ struct SafetyMapView: View {
         if let userLocation = locationManager.userLocation {
             withAnimation(.easeInOut(duration: 1.0)) {
                 region.center = userLocation.coordinate
+                cameraPosition = .region(region)
             }
         } else {
             locationManager.requestLocationPermission()
@@ -368,9 +384,11 @@ struct MinimalMapView: View {
             // Minimal header
             MinimalTopHeader(title: "Map", meshManager: meshManager)
             
-            // Simple map
-            Map(coordinateRegion: $region, showsUserLocation: true)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Simple map with modern syntax
+            Map(position: .constant(MapCameraPosition.region(region))) {
+                UserAnnotation()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Color(.systemBackground))
     }

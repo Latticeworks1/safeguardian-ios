@@ -197,6 +197,64 @@ struct AIMessageBubble: View {
     }
 }
 
+// MARK: - Empty AI View
+struct EmptyAIView: View {
+    @ObservedObject var safetyAI: SafetyAIGuide
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            // AI Icon
+            Image(systemName: "brain.head.profile.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.blue, .purple.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            
+            // Welcome Text
+            VStack(spacing: 12) {
+                Text("SafeGuardian AI Assistant")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                
+                Text("Your AI-powered safety companion for emergency guidance, safety tips, and community coordination.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            // Emergency Notice
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                    Text("Emergency Notice")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.red)
+                }
+                
+                Text("For real emergencies, always call 911 first. This AI provides guidance but cannot replace emergency services.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            .padding()
+            .background(.red.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal)
+            
+            Spacer()
+        }
+    }
+}
+
 // MARK: - AI Status View (Always Ready)
 struct AIStatusView: View {
     var body: some View {
